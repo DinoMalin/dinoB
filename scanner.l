@@ -12,6 +12,8 @@
 "/"		return DIV;
 "("		return LPAREN;
 ")"		return RPAREN;
+"{"		return LBRACE;
+"}"		return RBRACE;
 
 .		{ printf("Unknown caracter: %s\n", yytext); }
 %%

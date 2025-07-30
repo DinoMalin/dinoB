@@ -9,6 +9,7 @@ void yyerror(const char *s);
 %token <ival> NUM
 %token PLUS MINUS MUL DIV
 %token LPAREN RPAREN
+%token LBRACE RBRACE
 
 %left PLUS MINUS
 %left MUL DIV
@@ -22,7 +23,7 @@ void yyerror(const char *s);
 %%
 
 input:
-	 expr	{ printf("Res: %d\n", $1); }
+	LBRACE expr RBRACE		{ printf("%d\n", $2); }
 ;
 
 expr:
