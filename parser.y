@@ -8,8 +8,11 @@ void yyerror(const char *s);
 
 %token <ival> NUM
 %token PLUS MINUS MUL DIV
+
 %token LPAREN RPAREN
 %token LBRACE RBRACE
+
+%token IF
 
 %left PLUS MINUS
 %left MUL DIV
@@ -19,12 +22,17 @@ void yyerror(const char *s);
 }
 
 %type <ival> expr
+%type <ival> parenthesis
+%type <ival> declaration
 
 %%
 
 input:
-	LBRACE expr RBRACE		{ printf("%d\n", $2); }
+	 declaration	{ printf("%d\n", $1); }
 ;
+
+declaration:
+	LBRACE expr RBRACE	{ $$ = $2; }
 
 expr:
 	expr PLUS expr	{ $$ = $1 + $3; }
@@ -38,8 +46,12 @@ expr:
 							$$ = $1 / $3;
 						}
 					}
-  |	LPAREN expr RPAREN { $$ = $2; }
-  |	NUM 					{ $$ = $1; }
+  |	IF parenthesis declaration	{ if ($2) { $$ = $3; } }
+  |	parenthesis					{ $$ = $1; }
+  |	NUM 						{ $$ = $1; }
+
+parenthesis:
+		   LPAREN expr RPAREN { $$ = $2; }
 
 %%
 

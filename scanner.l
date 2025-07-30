@@ -25,6 +25,8 @@
 
 "//".*			;
 
+"if"	return IF;
+
 .		{ printf("Unknown caracter: %s\n", yytext); }
 %%
 

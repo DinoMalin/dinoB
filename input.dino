@@ -1,7 +1,5 @@
 {
-	2+2 // this is 2+2
-	*3 /*
-			I multiply by 3 because
-			I really like 3.
-		*/
+	if (2-2) {
+		2+3
+	}
 }
