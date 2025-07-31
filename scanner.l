@@ -5,10 +5,6 @@
 %x COMMENT
 
 %%
-[0-9]+		{ yylval.ival = atoi(yytext); return NUM; }
-[a-bA-B]+	{ yylval.str = yytext; return IDENT; } // todo: should be alpha then alpha-digit
-[ \t\n\r]+	;
-
 ";"		return SEMICOLON;
 "&"		return AMPERSAND;
 "?"		return INTERROGATION;
@@ -19,7 +15,7 @@
 "-"		return MINUS;
 "*"		return MUL;
 "/"		return DIV;
-"%"		return MODULO;
+"%"		return MOD;
 
 "("		return LPAREN;
 ")"		return RPAREN;
@@ -41,7 +37,6 @@
 "--"		return DEC;
 "!"			return NOT;
 "|"			return OR;
-"&"			return AND;
 
 "=="		return EQUAL;
 "!="		return UNEQUAL;
@@ -51,6 +46,15 @@
 ">="		return SUPEQUAL;
 "<<"		return LSHIFT;
 ">>"		return RSHIFT;
+
+'\\*[^']'|'.'	return CHAR;
+".*"			return STRING;
+
+
+[0-9]+		{ yylval.ival = atoi(yytext); return NUM; }
+[a-zA-Z]+	{ yylval.str = strdup(yytext); return IDENT; } // todo: should be alpha then alpha-digit
+[ \t\r]+	;
+"\n"		{ yylineno++; }
 
 "/*"			{ BEGIN(COMMENT); }
 <COMMENT>"*/"	{ BEGIN(INITIAL); }
