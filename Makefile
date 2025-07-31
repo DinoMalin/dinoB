@@ -1,4 +1,4 @@
-PROG = arithmetic
+PROG = B
 TOKEN = scanner.l
 PARSE = parser.y
 

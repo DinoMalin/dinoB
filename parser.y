@@ -7,51 +7,126 @@ void yyerror(const char *s);
 %}
 
 %token <ival> NUM
+%token IDENT
 %token PLUS MINUS MUL DIV
 
 %token LPAREN RPAREN
 %token LBRACE RBRACE
+%token LBRACK RBRACK
 
-%token IF
+%token SEMICOLON AMPERSAND INTERROGATION COLON COMMA
+%token AUTO EXTRN IF WHILE GOTO RETURN
+%token ASSIGN INC DEC NOT OR AND
+%token EQUAL UNEQUAL INF INFEQUAL SUP SUPEQUAL
+%token LSHIFT RSHIFT
 
 %left PLUS MINUS
 %left MUL DIV
 
 %union {
 	int ival;
+	char *str;
 }
 
-%type <ival> expr
-%type <ival> parenthesis
-%type <ival> declaration
+%type <str> ident
+%type <str> definition
 
 %%
 
-input:
-	 declaration	{ printf("%d\n", $1); }
-;
+program:
+	definition			{ printf("%s\n", $1); }
+	definition program	{ printf("%s\n", $1); }
 
-declaration:
-	LBRACE expr RBRACE	{ $$ = $2; }
+definition:
+	IDENT SEMICOLON
+  |	IDENT LBRACK NUM RBRACK SEMICOLON
+  |	IDENT LBRACK NUM RBRACK ivals SEMICOLON
+  |	IDENT LPAREN RPAREN statement
+  |	IDENT LPAREN ivals RPAREN statement
 
-expr:
-	expr PLUS expr	{ $$ = $1 + $3; }
-  |	expr MINUS expr	{ $$ = $1 - $3; }
-  |	expr MUL expr	{ $$ = $1 * $3; }
-  |	expr DIV expr	{ 
-  						if ($3 == 0) {
-							yyerror("division by zero");
-							$$ = 0;
-						} else {
-							$$ = $1 / $3;
-						}
-					}
-  |	IF parenthesis declaration	{ if ($2) { $$ = $3; } }
-  |	parenthesis					{ $$ = $1; }
-  |	NUM 						{ $$ = $1; }
+ivals:
+	NUM COMMA ivals
+	NUM COMMA
 
-parenthesis:
-		   LPAREN expr RPAREN { $$ = $2; }
+statement:
+	LBRACE statement RBRACE
+	LBRACE statement statement RBRACE
+	AUTO variables SEMICOLON statement
+	EXTRN idents SEMICOLON statement
+	IDENT COLON statement
+	IF condition statement
+	IF condition ELSE statement
+	WHILE condition statement
+	GOTO rvalue SEMICOLON
+	RETURN LPAREN rvalue RPAREN SEMICOLON
+	RETURN SEMICOLON
+	rvalue SEMICOLON
+
+condition:
+	   LPAREN rvalue RPAREN
+
+rvalue:
+	  LPAREN rvalue RPAREN
+	  lvalue
+	  lvalue ASSIGN rvalue
+	  inc-dec lvalue
+	  lvalue inc-dec
+	  unary rvalue
+	  AMPERSAND lvalue
+	  rvalue binary rvalue
+	  rvalue INTERROGATION rvalue COLON rvalue
+	  rvalue LPAREN rvalues RPAREN
+	  rvalue LPAREN RPAREN
+	  NUM
+
+rvalues:
+	rvalue COMMA rvalues
+  |	rvalue
+
+inc-dec:
+	INC
+  | DEC
+
+unary:
+	MINUS
+  |	NOT
+
+assign:
+	EQUAL
+  |	EQUAL binary
+
+binary:
+	OR
+  |	AND
+  |	EQUAL
+  |	UNEQUAL
+  |	INF
+  |	INFEQUAL
+  |	SUP
+  |	SUPEQUAL
+  |	LSHIFT
+  |	RSHIFT
+  |	PLUS
+  |	MINUS
+  |	MODULO
+  |	MUL
+  |	DIV
+
+lvalue:
+
+variables:
+	IDENT
+  |	IDENT NUM
+  |	IDENT COMMA variables
+  |	IDENT COMMA NUM variables
+
+idents:
+	IDENT
+  |	IDENT idents
+	
+
+
+
 
 %%
 
