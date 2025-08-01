@@ -48,12 +48,11 @@ extern int yylineno;
 %type <str> variables
 %type <str> idents
 
-// faudra free des trucs
 %%
 
 program:
-	definition			{ printf("%s\n", $1); free($1); }
-  |	definition program	{ printf("%s\n", $1); free($1); } // this probably need to change
+	definition			{ printf("%s", $1); free($1); }
+  |	definition program	{ printf("%s", $1); free($1); }
 
 definition:
 	IDENT SEMICOLON	{ asprintf(&$$, "%s;\n", $1); }
@@ -85,43 +84,44 @@ params:
 ;
 
 statement:
-	  LBRACE statements RBRACE       { asprintf(&$$, "{\n%s}", $2); free($2); }
-	| AUTO variables SEMICOLON statements {
-			asprintf(&$$, "auto %s;\n%s", $2, $4); free($2); free($4);
+	  LBRACE statements RBRACE       { asprintf(&$$, "{\n%s}\n", $2); free($2); }
+	| AUTO variables SEMICOLON {
+			asprintf(&$$, "auto %s;\n", $2); free($2);
 		}
-	| EXTRN idents SEMICOLON statements {
-			asprintf(&$$, "extern %s;\n%s", $2, $4); free($2); free($4);
+	| EXTRN idents SEMICOLON  {
+			asprintf(&$$, "extern %s;\n", $2); free($2);
 		}
-	| IDENT COLON statements {
+	| IDENT COLON statement {
 			asprintf(&$$, "%s:\n%s", $1, $3); free($3);
 		}
-	| IF condition statements {
+	| IF condition statement {
 			asprintf(&$$, "if%s\n%s", $2, $3); free($2); free($3);
 		}
-	| IF condition statements ELSE statements {
+	| IF condition statement ELSE statement {
 			asprintf(&$$, "if%s\n%s\nelse\n%s", $2, $3, $5);
 			free($2); free($3); free($5);
 		}
-	| WHILE condition statements {
+	| WHILE condition statement {
 			asprintf(&$$, "while%s\n%s", $2, $3); free($2); free($3);
 		}
 	| GOTO rvalue SEMICOLON {
-			asprintf(&$$, "goto %s;", $2); free($2);
+			asprintf(&$$, "goto %s;\n", $2); free($2);
 		}
 	| RETURN LPAREN rvalue RPAREN SEMICOLON {
-			asprintf(&$$, "return(%s);", $3); free($3);
+			asprintf(&$$, "return(%s);\n", $3); free($3);
 		}
 	| RETURN SEMICOLON {
-			asprintf(&$$, "return;");
+			asprintf(&$$, "return;\n");
 		}
 	| rvalue SEMICOLON {
-			asprintf(&$$, "%s;", $1); free($1);
+			asprintf(&$$, "%s;\n", $1); free($1);
 		}
+  	| SEMICOLON { $$ = strdup(";\n"); }
 ;
 
 statements:
 		  					{ $$ = strdup(""); }
-  |	statement statements	{ asprintf(&$$, "%s\n%s", $1, $2); free($1); free($2); }
+  |	statement statements	{ asprintf(&$$, "%s%s", $1, $2); free($1); free($2); }
 
 condition:
 	LPAREN rvalue RPAREN {

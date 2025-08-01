@@ -1,3 +1,7 @@
 main() {
 	auto dino;
+	;
+	if (dino) {
+		dinosaur();
+	}
 }
