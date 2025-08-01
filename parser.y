@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define ENTER "push ebp\nmov ebp, esp\n"
 	
 int yylex(void);
 void yyerror(const char *s);
@@ -70,8 +72,12 @@ definition:
 		free($5);	
 	}
 
-  |	IDENT LPAREN RPAREN statements { asprintf(&$$, "%s()\n%s", $1, $4); free($4); }
-  |	IDENT LPAREN idents RPAREN statements { asprintf(&$$, "%s(%s)\n%s", $1, $3, $5);
+  |	IDENT LPAREN RPAREN statements {
+  		asprintf(&$$, ".globl %s\n%s:\n"ENTER"%s", $1, $1, $4);
+		free($4);
+	}
+  |	IDENT LPAREN idents RPAREN statements {
+  		asprintf(&$$, ".globl %s\n%s:\n"ENTER"%s", $1, $1, $5);
   		free($5); 
   }
 
@@ -81,7 +87,7 @@ statement:
 			asprintf(&$$, "auto %s;\n", $2); free($2);
 		}
 	| EXTRN idents SEMICOLON  {
-			asprintf(&$$, "extern %s;\n", $2); free($2);
+			asprintf(&$$, "extrn %s;\n", $2); free($2);
 		}
 	| IDENT COLON statement {
 			asprintf(&$$, "%s:\n%s", $1, $3); free($3);
@@ -97,7 +103,7 @@ statement:
 			asprintf(&$$, "while%s\n%s", $2, $3); free($2); free($3);
 		}
 	| GOTO rvalue SEMICOLON {
-			asprintf(&$$, "goto %s;\n", $2); free($2);
+			asprintf(&$$, "jmp %s\n", $2); free($2);
 		}
 	| RETURN LPAREN rvalue RPAREN SEMICOLON {
 			asprintf(&$$, "return(%s);\n", $3); free($3);
