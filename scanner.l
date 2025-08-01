@@ -47,8 +47,8 @@
 "<<"		return LSHIFT;
 ">>"		return RSHIFT;
 
-'\\*[^']'|'.'	return CHAR;
-".*"			return STRING;
+'\\*[^']'|'.'	{ yylval.str = strdup(yytext); return CHAR; }
+\".*\"			{ yylval.str = strdup(yytext); return STRING; }
 
 
 [0-9]+		{ yylval.ival = atoi(yytext); return NUM; }

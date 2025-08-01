@@ -9,6 +9,7 @@ void yyerror(const char *s);
 extern int yylineno;
 %}
 
+%debug
 %union {
 	int ival;
 	char *str;
@@ -16,6 +17,8 @@ extern int yylineno;
 
 %token <ival> NUM
 %token <str> IDENT
+%token <str> CHAR
+%token <str> STRING
 %token PLUS MINUS MUL DIV MOD
 
 %token LPAREN RPAREN
@@ -27,14 +30,12 @@ extern int yylineno;
 %token ASSIGN INC DEC NOT OR
 %token EQUAL UNEQUAL INF INFEQUAL SUP SUPEQUAL
 %token LSHIFT RSHIFT
-%token CHAR STRING
 
 %left PLUS MINUS
 %left MUL DIV
 
 %type <str> definition
 %type <str> ivals
-%type <str> params
 %type <str> statement
 %type <str> statements
 %type <str> condition
@@ -44,6 +45,7 @@ extern int yylineno;
 %type <str> incdec
 %type <str> unary
 %type <str> binary
+%type <str> constant
 %type <str> assign
 %type <str> variables
 %type <str> idents
@@ -69,19 +71,9 @@ definition:
 	}
 
   |	IDENT LPAREN RPAREN statements { asprintf(&$$, "%s()\n%s", $1, $4); free($4); }
-  |	IDENT LPAREN params RPAREN statements { asprintf(&$$, "%s(%s)\n%s", $1, $3, $5);
+  |	IDENT LPAREN idents RPAREN statements { asprintf(&$$, "%s(%s)\n%s", $1, $3, $5);
   		free($5); 
   }
-
-ivals:
-	  NUM COMMA ivals   { asprintf(&$$, "%d, %s", $1, $3); free($3); }
-	| NUM               { asprintf(&$$, "%d", $1); }
-;
-
-params:
-	  IDENT COMMA params { asprintf(&$$, "%s, %s", $1, $3); free($3); }
-	| IDENT              { asprintf(&$$, "%s", $1); }
-;
 
 statement:
 	  LBRACE statements RBRACE       { asprintf(&$$, "{\n%s}\n", $2); free($2); }
@@ -161,9 +153,7 @@ rvalue:
 	| rvalue LPAREN RPAREN {
 			asprintf(&$$, "%s()", $1); free($1);
 		}
-	| NUM {
-			asprintf(&$$, "%d", $1);
-		}
+	| constant { asprintf(&$$, "%s", $1); free($1); }
 ;
 
 rvalues:
@@ -211,6 +201,11 @@ binary:
   | MOD			{ asprintf(&$$, "%%"); }
 ;
 
+constant:
+	NUM			{ asprintf(&$$, "%d", $1); }
+  |	CHAR		{ asprintf(&$$, "%s", $1); free($1); }
+  |	STRING		{ asprintf(&$$, "%s", $1); free($1); }
+
 assign:
 	ASSIGN { asprintf(&$$, "="); }
   | ASSIGN binary {
@@ -231,11 +226,14 @@ variables:
 		}
 ;
 
+ivals:
+	  NUM COMMA ivals   { asprintf(&$$, "%d, %s", $1, $3); free($3); }
+	| NUM               { asprintf(&$$, "%d", $1); }
+;
+
 idents:
-	  IDENT         { $$ = $1; }
-	| IDENT idents	{
-			asprintf(&$$, "%s %s", $1, $2); free($1); free($2);
-		}
+	  IDENT COMMA idents { asprintf(&$$, "%s, %s", $1, $3); free($3); }
+	| IDENT              { asprintf(&$$, "%s", $1); }
 ;
 
 %%
