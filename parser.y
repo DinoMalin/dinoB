@@ -9,6 +9,8 @@
 int yylex(void);
 void yyerror(const char *s);
 extern int yylineno;
+
+int var_count = 0;
 %}
 
 %debug
@@ -73,10 +75,12 @@ definition:
 	}
 
   |	IDENT LPAREN RPAREN statements {
+  		var_count = 0;
   		asprintf(&$$, ".globl %s\n%s:\n"ENTER"%s", $1, $1, $4);
 		free($4);
 	}
   |	IDENT LPAREN idents RPAREN statements {
+  		var_count = 0;
   		asprintf(&$$, ".globl %s\n%s:\n"ENTER"%s", $1, $1, $5);
   		free($5); 
   }
@@ -84,7 +88,7 @@ definition:
 statement:
 	  LBRACE statements RBRACE       { asprintf(&$$, "{\n%s}\n", $2); free($2); }
 	| AUTO variables SEMICOLON {
-			asprintf(&$$, "auto %s;\n", $2); free($2);
+			$$ = $2;
 		}
 	| EXTRN idents SEMICOLON  {
 			asprintf(&$$, "extrn %s;\n", $2); free($2);
@@ -220,15 +224,25 @@ assign:
 ;
 
 variables:
-	  IDENT						{ $$ = $1; }
+	  IDENT						{ 
+	  		var_count += 4;
+	  		asprintf(&$$, "lea eax, [ebp - %d]\n", var_count);
+			free($1);
+	  }
 	| IDENT NUM                 {
-			asprintf(&$$, "%s %d", $1, $2); free($1);
+	  		var_count += 4;
+	  		asprintf(&$$, "lea eax, [ebp - %d]\n", var_count);
+			free($1);
 		}
-	| IDENT COMMA variables     {
-			asprintf(&$$, "%s, %s", $1, $3); free($1); free($3);
+	| variables COMMA IDENT     {
+	  		var_count += 4;
+	  		asprintf(&$$, "%slea eax, [ebp - %d]\n", $1, var_count);
+			free($1);
 		}
-	| IDENT COMMA NUM variables {
-			asprintf(&$$, "%s, %d %s", $1, $3, $4); free($1); free($4);
+	| variables COMMA IDENT NUM {
+	  		var_count += 4;
+	  		asprintf(&$$, "%slea eax, [ebp - %d]\n", $1, var_count);
+			free($1);
 		}
 ;
 
