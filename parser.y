@@ -4,13 +4,61 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_VARS 511
+
 #define ENTER "push ebp\nmov ebp, esp\n"
+#define ASSIGNEMENT "lea eax, [ebp - %d]\n"	\
+					"push eax\n"			\
+					"mov eax, 0\n"			\
+					"pop ebx\n"				\
+					"mov [ebx], eax\n"		\
 	
 int yylex(void);
 void yyerror(const char *s);
 extern int yylineno;
 
 int var_count = 0;
+typedef struct {
+	char *ident;
+	int pos;
+} variable;
+
+variable vars[MAX_VARS];
+
+#define ADD_VAR(_ident)								\
+	{												\
+		if (var_count >= MAX_VARS) {				\
+			yyerror("too many identifiers");		\
+			YYABORT;								\
+		} else {									\
+			vars[var_count].ident = _ident;			\
+			vars[var_count].pos = (var_count+1)*4;	\
+			var_count++;							\
+		}											\
+	}
+
+#define RESET_STACK()								\
+	{												\
+		for (int i = 0; i < var_count; i++) {		\
+			free(vars[i].ident);					\
+		}											\
+		var_count = 0;								\
+	}
+
+#define RETRIEVE_POS(_ident, dst)					\
+	{												\
+		int i = 0;									\
+		for (; i < var_count; i++) {				\
+			if (!strcmp(vars[i].ident, _ident)) {	\
+				dst = vars[i].pos;					\
+				break;								\
+			}										\
+		}											\
+		if (i == var_count) {						\
+			yyerror("identifier doesn't exist");	\
+			YYABORT;								\
+		}											\
+	}
 %}
 
 %debug
@@ -75,12 +123,12 @@ definition:
 	}
 
   |	IDENT LPAREN RPAREN statements {
-  		var_count = 0;
+  		//RESET_STACK();
   		asprintf(&$$, ".globl %s\n%s:\n"ENTER"%s", $1, $1, $4);
 		free($4);
 	}
   |	IDENT LPAREN idents RPAREN statements {
-  		var_count = 0;
+		RESET_STACK();
   		asprintf(&$$, ".globl %s\n%s:\n"ENTER"%s", $1, $1, $5);
   		free($5); 
   }
@@ -137,7 +185,10 @@ rvalue:
 		}
 	| lvalue                    { $$ = $1; }
 	| lvalue assign rvalue      {
-			asprintf(&$$, "%s = %s", $1, $3); free($1); free($3);
+			int pos;
+			RETRIEVE_POS($1, pos);
+			asprintf(&$$, ASSIGNEMENT, pos);
+			free($1); free($3);
 		}
 	| incdec lvalue            {
 			asprintf(&$$, "%s%s", $1, $2); free($1); free($2);
@@ -224,26 +275,10 @@ assign:
 ;
 
 variables:
-	  IDENT						{ 
-	  		var_count += 4;
-	  		asprintf(&$$, "lea eax, [ebp - %d]\n", var_count);
-			free($1);
-	  }
-	| IDENT NUM                 {
-	  		var_count += 4;
-	  		asprintf(&$$, "lea eax, [ebp - %d]\n", var_count);
-			free($1);
-		}
-	| variables COMMA IDENT     {
-	  		var_count += 4;
-	  		asprintf(&$$, "%slea eax, [ebp - %d]\n", $1, var_count);
-			free($1);
-		}
-	| variables COMMA IDENT NUM {
-	  		var_count += 4;
-	  		asprintf(&$$, "%slea eax, [ebp - %d]\n", $1, var_count);
-			free($1);
-		}
+	  IDENT						{ ADD_VAR($1); $$ = strdup(""); }
+	| IDENT NUM                 { ADD_VAR($1); $$ = strdup(""); }
+	| variables COMMA IDENT     { ADD_VAR($3); $$ = strdup(""); }
+	| variables COMMA IDENT NUM { ADD_VAR($3); $$ = strdup(""); }
 ;
 
 ivals:
