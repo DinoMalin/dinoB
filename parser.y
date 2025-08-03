@@ -8,9 +8,9 @@
 #define MAX_VARS 511
 
 #define ENTER "push ebp\nmov ebp, esp\n"
-#define ASSIGNEMENT "%s\n"					\
+#define ASSIGNEMENT "%s"					\
 					"push eax\n"			\
-					"%s\n"					\
+					"%s"					\
 					"pop ebx\n"				\
 					"mov [ebx], eax\n"
 
@@ -18,7 +18,21 @@
 					".LC%d:\n"				\
 					".string %s\n"			\
 					".text\n"				\
-					"mov eax, LC%d"
+					"mov eax, LC%d\n"
+
+#define PR_INCREMENT	"%s"					\
+						"mov ebx, [eax]\n"		\
+						"mov ecx, ebx\n"		\
+						"add ebx, %d\n"			\
+						"mov [eax], ebx\n"		\
+						"mov eax, ecx\n"
+
+#define PST_INCREMENT	"%s"					\
+						"mov ebx, [eax]\n"		\
+						"mov ecx, ebx\n"		\
+						"add ebx, %d\n"			\
+						"mov [eax], ebx\n"		\
+						"mov eax, ebx\n"
 	
 int yylex(void);
 void yyerror(const char *s);
@@ -77,7 +91,6 @@ variable vars[MAX_VARS];
 		}											\
 	}
 	extern int yydebug;
-	//printf("%d: %d %s | %s\n", i, vars[i].pos, vars[i].ident, _ident);
 %}
 
 %debug
@@ -113,7 +126,7 @@ variable vars[MAX_VARS];
 %type <str> rvalue
 %type <str> lvalue
 %type <str> rvalues
-%type <str> incdec
+%type <ival> incdec
 %type <str> unary
 %type <str> binary
 %type <str> constant
@@ -201,23 +214,23 @@ condition:
 	}
 ;
 
+/* The goal of rvalue is to place a rvalue in eax */
 rvalue:
 	  LPAREN rvalue RPAREN {
-			asprintf(&$$, "(%s)", $2); free($2);
+			asprintf(&$$, "%s", $2);
+			free($2);
 		}
-	| lvalue assign constant	{
+	| lvalue assign rvalue      {
 			asprintf(&$$, ASSIGNEMENT, $1, $3);
 			free($1); free($3);
 		}
-	| lvalue assign rvalue      {
-			asprintf(&$$, ASSIGNEMENT, $1, "[to do]");
-			free($1); free($3);
-		}
 	| incdec lvalue            {
-			asprintf(&$$, "%s%s", $1, $2); free($1); free($2);
+			asprintf(&$$, PR_INCREMENT, $2, $1);
+			free($2);
 		}
 	| lvalue incdec            {
-			asprintf(&$$, "%s%s", $1, $2); free($1); free($2);
+			asprintf(&$$, PST_INCREMENT, $1, $2);
+			free($1);
 		}
 	| unary rvalue              {
 			asprintf(&$$, "%s%s", $1, $2); free($1); free($2);
@@ -248,18 +261,20 @@ rvalues:
   | rvalue { $$ = $1; }
 ;
 
+/* The goal of lvalue is to place an lvalue in eax */
 lvalue:
 	IDENT { 
 		int pos;
 		RETRIEVE_POS($1, pos);
 		if (pos != -1)
-	  		asprintf(&$$, "lea eax, [ebp - %d]", pos);
+	  		asprintf(&$$, "lea eax, [ebp - %d]\n", pos);
 		else
-	  		asprintf(&$$, "lea eax, \"%s\"", $1);
+	  		asprintf(&$$, "lea eax, \"%s\"\n", $1);
 		free($1);
 	}
 	| MUL rvalue {
-			asprintf(&$$, "*%s", $2); free($2);
+			asprintf(&$$, "mov eax, [eax]\n");
+			free($2);
 	}
 	| rvalue LBRACK rvalue RBRACK {
 			asprintf(&$$, "%s[%s]", $1, $3); free($1); free($3);
@@ -267,8 +282,8 @@ lvalue:
 ;
 
 incdec:
-	INC { asprintf(&$$, "++"); }
-  | DEC { asprintf(&$$, "--"); }
+	INC { $$ = 1; }
+  | DEC { $$ = -1; }
 ;
 
 unary:
