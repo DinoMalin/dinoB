@@ -3,11 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define MAX_VARS 511
 
 #define ENTER "push ebp\nmov ebp, esp\n"
-#define ASSIGNEMENT "lea eax, [ebp - %d]\n"	\
+#define ASSIGNEMENT "%s\n"					\
 					"push eax\n"			\
 					"%s\n"					\
 					"pop ebx\n"				\
@@ -25,47 +26,58 @@ extern int yylineno;
 
 int label_count = 0;
 int var_count = 0;
+int id_count = 0;
+
 typedef struct {
 	char *ident;
 	int pos;
+	bool func;
 } variable;
 
 variable vars[MAX_VARS];
 
-#define ADD_VAR(_ident)								\
-	{												\
-		if (var_count >= MAX_VARS) {				\
-			yyerror("too many identifiers");		\
-			YYABORT;								\
-		} else {									\
-			vars[var_count].ident = _ident;			\
-			vars[var_count].pos = (var_count+1)*4;	\
-			var_count++;							\
-		}											\
+#define ADD_ID(_ident, _func)							\
+	{													\
+		if (id_count >= MAX_VARS) {						\
+			yyerror("too many identifiers");			\
+			YYABORT;									\
+		} else {										\
+			vars[id_count].ident = strdup(_ident);		\
+			if (_func) {								\
+				vars[id_count].func = true;				\
+				vars[id_count].pos = -1;				\
+			} else {									\
+				vars[id_count].pos = (var_count+1)*4;	\
+				var_count++;							\
+			}											\
+			id_count++;									\
+		}												\
 	}
 
 #define RESET_STACK()								\
 	{												\
-		for (int i = 0; i < var_count; i++) {		\
+		for (int i = 0; i < id_count; i++) {		\
 			free(vars[i].ident);					\
 		}											\
-		var_count = 0;								\
+		id_count = 0;								\
 	}
 
 #define RETRIEVE_POS(_ident, dst)					\
 	{												\
 		int i = 0;									\
-		for (; i < var_count; i++) {				\
+		for (; i < id_count; i++) {					\
 			if (!strcmp(vars[i].ident, _ident)) {	\
 				dst = vars[i].pos;					\
 				break;								\
 			}										\
 		}											\
-		if (i == var_count) {						\
+		if (i == id_count) {						\
 			yyerror("identifier doesn't exist");	\
 			YYABORT;								\
 		}											\
 	}
+	extern int yydebug;
+	//printf("%d: %d %s | %s\n", i, vars[i].pos, vars[i].ident, _ident);
 %}
 
 %debug
@@ -108,6 +120,7 @@ variable vars[MAX_VARS];
 %type <str> assign
 %type <str> variables
 %type <str> idents
+%type <str> extrn
 
 %%
 
@@ -130,7 +143,7 @@ definition:
 	}
 
   |	IDENT LPAREN RPAREN statements {
-  		//RESET_STACK();
+  		RESET_STACK();
   		asprintf(&$$, ".globl %s\n%s:\n"ENTER"%s", $1, $1, $4);
 		free($4);
 	}
@@ -141,11 +154,13 @@ definition:
   }
 
 statement:
-	  LBRACE statements RBRACE       { asprintf(&$$, "{\n%s}\n", $2); free($2); }
+	  LBRACE statements RBRACE       {
+	  		asprintf(&$$, "{\n%s}\n", $2); free($2);
+		}
 	| AUTO variables SEMICOLON {
 			$$ = $2;
 		}
-	| EXTRN idents SEMICOLON  {
+	| EXTRN extrn SEMICOLON  {
 			asprintf(&$$, "extrn %s;\n", $2); free($2);
 		}
 	| IDENT COLON statement {
@@ -190,17 +205,12 @@ rvalue:
 	  LPAREN rvalue RPAREN {
 			asprintf(&$$, "(%s)", $2); free($2);
 		}
-	| lvalue                    { $$ = $1; }
 	| lvalue assign constant	{
-			int pos;
-			RETRIEVE_POS($1, pos);
-			asprintf(&$$, ASSIGNEMENT, pos, $3);
+			asprintf(&$$, ASSIGNEMENT, $1, $3);
 			free($1); free($3);
 		}
 	| lvalue assign rvalue      {
-			int pos;
-			RETRIEVE_POS($1, pos);
-			asprintf(&$$, ASSIGNEMENT, pos, "[to do]");
+			asprintf(&$$, ASSIGNEMENT, $1, "[to do]");
 			free($1); free($3);
 		}
 	| incdec lvalue            {
@@ -228,6 +238,7 @@ rvalue:
 			asprintf(&$$, "%s()", $1); free($1);
 		}
 	| constant { $$ = $1; }
+	| lvalue                    { $$ = $1; }
 ;
 
 rvalues:
@@ -238,10 +249,18 @@ rvalues:
 ;
 
 lvalue:
-	  IDENT { $$ = $1; }
+	IDENT { 
+		int pos;
+		RETRIEVE_POS($1, pos);
+		if (pos != -1)
+	  		asprintf(&$$, "lea eax, [ebp - %d]", pos);
+		else
+	  		asprintf(&$$, "lea eax, \"%s\"", $1);
+		free($1);
+	}
 	| MUL rvalue {
 			asprintf(&$$, "*%s", $2); free($2);
-		}
+	}
 	| rvalue LBRACK rvalue RBRACK {
 			asprintf(&$$, "%s[%s]", $1, $3); free($1); free($3);
 		}
@@ -298,10 +317,10 @@ assign:
 ;
 
 variables:
-	  IDENT						{ ADD_VAR($1); $$ = strdup(""); }
-	| IDENT NUM                 { ADD_VAR($1); $$ = strdup(""); }
-	| variables COMMA IDENT     { ADD_VAR($3); $$ = strdup(""); }
-	| variables COMMA IDENT NUM { ADD_VAR($3); $$ = strdup(""); }
+	  IDENT						{ ADD_ID($1, false); $$ = strdup(""); }
+	| IDENT NUM                 { ADD_ID($1, false); $$ = strdup(""); }
+	| variables COMMA IDENT     { ADD_ID($3, false); $$ = strdup(""); }
+	| variables COMMA IDENT NUM { ADD_ID($3, false); $$ = strdup(""); }
 ;
 
 ivals:
@@ -310,8 +329,12 @@ ivals:
 ;
 
 idents:
-	  IDENT COMMA idents { asprintf(&$$, "%s, %s", $1, $3); free($3); }
-	| IDENT              { asprintf(&$$, "%s", $1); }
+	  IDENT COMMA idents { asprintf(&$$, "%s, %s", $1, $3); free($1); }
+	| IDENT              { asprintf(&$$, "%s", $1); free($1); }
+
+extrn:
+	  IDENT COMMA extrn	{ ADD_ID($1, true); free($1); }
+	| IDENT            	{ ADD_ID($1, true); free($1); }
 ;
 
 %%
@@ -321,6 +344,7 @@ void yyerror(const char *s) {
 }
 
 int main() {
+	yydebug = 0;
 	printf("Enter some B code:\n");
 	yyparse();
 	return 0;
