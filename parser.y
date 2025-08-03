@@ -33,7 +33,12 @@
 						"add ebx, %d\n"			\
 						"mov [eax], ebx\n"		\
 						"mov eax, ebx\n"
-	
+
+#define NOT_ASM			"cmp eax, 0\n"			\
+						"sete al\n"				\
+						"movzx eax, al\n"
+
+
 int yylex(void);
 void yyerror(const char *s);
 extern int yylineno;
@@ -214,7 +219,6 @@ condition:
 	}
 ;
 
-/* The goal of rvalue is to place a rvalue in eax */
 rvalue:
 	  LPAREN rvalue RPAREN {
 			asprintf(&$$, "%s", $2);
@@ -233,10 +237,12 @@ rvalue:
 			free($1);
 		}
 	| unary rvalue              {
-			asprintf(&$$, "%s%s", $1, $2); free($1); free($2);
+			asprintf(&$$, "%s%s", $2, $1);
+			free($1);
+			free($2);
 		}
 	| AMPERSAND lvalue          {
-			asprintf(&$$, "&%s", $2); free($2);
+			$$ = $2;
 		}
 	| rvalue binary rvalue      {
 			asprintf(&$$, "(%s %s %s)", $1, $2, $3); free($1); free($2); free($3);
@@ -261,7 +267,6 @@ rvalues:
   | rvalue { $$ = $1; }
 ;
 
-/* The goal of lvalue is to place an lvalue in eax */
 lvalue:
 	IDENT { 
 		int pos;
@@ -273,7 +278,7 @@ lvalue:
 		free($1);
 	}
 	| MUL rvalue {
-			asprintf(&$$, "mov eax, [eax]\n");
+			$$ = strdup("mov eax, [eax]\n");
 			free($2);
 	}
 	| rvalue LBRACK rvalue RBRACK {
@@ -287,8 +292,8 @@ incdec:
 ;
 
 unary:
-	MINUS { asprintf(&$$, "-"); }
-  | NOT   { asprintf(&$$, "!"); }
+	MINUS { $$ = strdup("neg eax"); }
+  | NOT   { $$ = strdup(NOT_ASM); }
 ;
 
 binary:
@@ -324,6 +329,7 @@ constant:
   		label_count++;
 	}
 
+/* todo: no assign/binary, separate the tokens */
 assign:
 	ASSIGN { asprintf(&$$, "="); }
   | ASSIGN binary {
