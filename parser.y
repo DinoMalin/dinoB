@@ -9,14 +9,21 @@
 #define ENTER "push ebp\nmov ebp, esp\n"
 #define ASSIGNEMENT "lea eax, [ebp - %d]\n"	\
 					"push eax\n"			\
-					"mov eax, 0\n"			\
+					"%s\n"					\
 					"pop ebx\n"				\
-					"mov [ebx], eax\n"		\
+					"mov [ebx], eax\n"
+
+#define CONST_STR	".section .rodata\n"	\
+					".LC%d:\n"				\
+					".string %s\n"			\
+					".text\n"				\
+					"mov eax, LC%d"
 	
 int yylex(void);
 void yyerror(const char *s);
 extern int yylineno;
 
+int label_count = 0;
 int var_count = 0;
 typedef struct {
 	char *ident;
@@ -164,7 +171,7 @@ statement:
 			asprintf(&$$, "return;\n");
 		}
 	| rvalue SEMICOLON {
-			asprintf(&$$, "%s;\n", $1); free($1);
+			asprintf(&$$, "%s", $1); free($1);
 		}
   	| SEMICOLON { $$ = strdup(";\n"); }
 ;
@@ -184,10 +191,16 @@ rvalue:
 			asprintf(&$$, "(%s)", $2); free($2);
 		}
 	| lvalue                    { $$ = $1; }
+	| lvalue assign constant	{
+			int pos;
+			RETRIEVE_POS($1, pos);
+			asprintf(&$$, ASSIGNEMENT, pos, $3);
+			free($1); free($3);
+		}
 	| lvalue assign rvalue      {
 			int pos;
 			RETRIEVE_POS($1, pos);
-			asprintf(&$$, ASSIGNEMENT, pos);
+			asprintf(&$$, ASSIGNEMENT, pos, "[to do]");
 			free($1); free($3);
 		}
 	| incdec lvalue            {
@@ -214,7 +227,7 @@ rvalue:
 	| rvalue LPAREN RPAREN {
 			asprintf(&$$, "%s()", $1); free($1);
 		}
-	| constant { asprintf(&$$, "%s", $1); free($1); }
+	| constant { $$ = $1; }
 ;
 
 rvalues:
@@ -263,9 +276,19 @@ binary:
 ;
 
 constant:
-	NUM			{ asprintf(&$$, "%d", $1); }
-  |	CHAR		{ asprintf(&$$, "%s", $1); free($1); }
-  |	STRING		{ asprintf(&$$, "%s", $1); free($1); }
+	NUM			{
+		asprintf(&$$, "mov eax, %d", $1);
+	}
+  |	CHAR		{
+  		int c = strcspn($1, "'") != 2 ? $1[1] : $1[2];
+  		asprintf(&$$, "mov eax, %d", c);
+		free($1);
+	}
+  |	STRING		{
+  		asprintf(&$$, CONST_STR, label_count, $1, label_count);
+		free($1);
+  		label_count++;
+	}
 
 assign:
 	ASSIGN { asprintf(&$$, "="); }
@@ -298,7 +321,7 @@ void yyerror(const char *s) {
 }
 
 int main() {
-	printf("Enter an arithmetic expression:\n");
+	printf("Enter some B code:\n");
 	yyparse();
 	return 0;
 }
