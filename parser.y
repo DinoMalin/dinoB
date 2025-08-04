@@ -192,7 +192,8 @@ statement:
 			$$ = $2;
 		}
 	| EXTRN extrn SEMICOLON  {
-			asprintf(&$$, "extrn %s;\n", $2); free($2);
+			asprintf(&$$, "%s", $2);
+			free($2);
 		}
 	| IDENT COLON statement {
 			asprintf(&$$, "%s:\n%s", $1, $3); free($3);
@@ -239,7 +240,8 @@ rvalue:
 		}
 	| lvalue assign rvalue      {
 			asprintf(&$$, ASSIGNEMENT, $1, $3);
-			free($1); free($3);
+			free($1);
+			free($3);
 		}
 	| incdec lvalue            {
 			asprintf(&$$, PR_INCREMENT, $2, $1);
@@ -317,12 +319,12 @@ unary:
 binary:
 	OR        	{ asprintf(&$$, "or eax, ebx\n"); }
   | AMPERSAND   { asprintf(&$$, "and eax, ebx\n"); }
-  | EQUAL     	{ asprintf(&$$, "=="); }
-  | UNEQUAL   	{ asprintf(&$$, "!="); }
-  | INF       	{ asprintf(&$$, "<"); }
-  | INFEQUAL  	{ asprintf(&$$, "<="); }
-  | SUP       	{ asprintf(&$$, ">"); }
-  | SUPEQUAL  	{ asprintf(&$$, ">="); }
+  | EQUAL     	{ asprintf(&$$, "cmp eax, ebx\nsete al\nmovzx eax, al\n"); }
+  | UNEQUAL   	{ asprintf(&$$, "cmp eax, ebx\nsetne al\nmovzx eax, al\n"); }
+  | INF       	{ asprintf(&$$, "cmp eax, ebx\nsetl al\nmovzx eax, al\n"); }
+  | INFEQUAL  	{ asprintf(&$$, "cmp eax, ebx\nsetle al\nmovzx eax, al\n"); }
+  | SUP       	{ asprintf(&$$, "cmp eax, ebx\nsetg al\nmovzx eax, al\n"); }
+  | SUPEQUAL  	{ asprintf(&$$, "cmp eax, ebx\nsetge al\nmovzx eax, al\n"); }
   | LSHIFT    	{ asprintf(&$$, "mov ecx, ebx\nshl eax, cl\n"); }
   | RSHIFT    	{ asprintf(&$$, "mov ecx, ebx\nshr eax, cl\n"); }
   | PLUS      	{ asprintf(&$$, "add eax, ebx\n"); }
