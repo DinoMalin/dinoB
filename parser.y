@@ -204,11 +204,11 @@ statement:
 			asprintf(&$$, "if%s\n%s", $2, $3); free($2); free($3);
 		}
 	| IF condition statement ELSE statement {
-			asprintf(&$$, "if%s\n%s\nelse\n%s", $2, $3, $5);
+			asprintf(&$$, "if\n%s%selse\n%s", $2, $3, $5);
 			free($2); free($3); free($5);
 		}
 	| WHILE condition statement {
-			asprintf(&$$, "while%s\n%s", $2, $3); free($2); free($3);
+			asprintf(&$$, "while\n%s%s", $2, $3); free($2); free($3);
 		}
 	| GOTO rvalue SEMICOLON {
 			asprintf(&$$, "jmp %s\n", $2);
@@ -232,7 +232,8 @@ statements:
 
 condition:
 	LPAREN rvalue RPAREN {
-		asprintf(&$$, "(%s)", $2); free($2);
+		asprintf(&$$, "%scmp eax, 0\nsetne al\nmovzx eax, al\n", $2);
+		free($2);
 	}
 ;
 
@@ -272,7 +273,7 @@ rvalue:
 			asprintf(&$$, "(%s ? %s : %s)", $1, $3, $5); free($1); free($3); free($5);
 		}
 	| rvalue LPAREN rvalues RPAREN {
-			asprintf(&$$, "%s(%s)", $1, $3); free($1); free($3);
+			asprintf(&$$, "%s(%s)\n", $1, $3); free($1); free($3);
 		}
 	| rvalue LPAREN RPAREN {
 			asprintf(&$$, "%s()", $1); free($1);
@@ -320,21 +321,21 @@ unary:
 ;
 
 binary:
-	OR        	{ asprintf(&$$, "or eax, ebx\n"); }
-  | AMPERSAND   { asprintf(&$$, "and eax, ebx\n"); }
-  | EQUAL     	{ asprintf(&$$, "cmp eax, ebx\nsete al\nmovzx eax, al\n"); }
-  | UNEQUAL   	{ asprintf(&$$, "cmp eax, ebx\nsetne al\nmovzx eax, al\n"); }
-  | INF       	{ asprintf(&$$, "cmp eax, ebx\nsetl al\nmovzx eax, al\n"); }
-  | INFEQUAL  	{ asprintf(&$$, "cmp eax, ebx\nsetle al\nmovzx eax, al\n"); }
-  | SUP       	{ asprintf(&$$, "cmp eax, ebx\nsetg al\nmovzx eax, al\n"); }
-  | SUPEQUAL  	{ asprintf(&$$, "cmp eax, ebx\nsetge al\nmovzx eax, al\n"); }
-  | LSHIFT    	{ asprintf(&$$, "mov ecx, ebx\nshl eax, cl\n"); }
-  | RSHIFT    	{ asprintf(&$$, "mov ecx, ebx\nshr eax, cl\n"); }
-  | PLUS      	{ asprintf(&$$, "add eax, ebx\n"); }
-  | MINUS     	{ asprintf(&$$, "sub eax, ebx\n"); }
-  | MUL       	{ asprintf(&$$, "mul ebx\n"); }
-  | DIV       	{ asprintf(&$$, "cdq\nidiv ebx\n"); }
-  | MOD			{ asprintf(&$$, "cdq\nidiv ebx\nmov edx, eax\n"); }
+	OR        	{ $$ = strdup("or eax, ebx\n"); }
+  | AMPERSAND   { $$ = strdup("and eax, ebx\n"); }
+  | EQUAL     	{ $$ = strdup("cmp eax, ebx\nsete al\nmovzx eax, al\n"); }
+  | UNEQUAL   	{ $$ = strdup("cmp eax, ebx\nsetne al\nmovzx eax, al\n"); }
+  | INF       	{ $$ = strdup("cmp eax, ebx\nsetl al\nmovzx eax, al\n"); }
+  | INFEQUAL  	{ $$ = strdup("cmp eax, ebx\nsetle al\nmovzx eax, al\n"); }
+  | SUP       	{ $$ = strdup("cmp eax, ebx\nsetg al\nmovzx eax, al\n"); }
+  | SUPEQUAL  	{ $$ = strdup("cmp eax, ebx\nsetge al\nmovzx eax, al\n"); }
+  | LSHIFT    	{ $$ = strdup("mov ecx, ebx\nshl eax, cl\n"); }
+  | RSHIFT    	{ $$ = strdup("mov ecx, ebx\nshr eax, cl\n"); }
+  | PLUS      	{ $$ = strdup("add eax, ebx\n"); }
+  | MINUS     	{ $$ = strdup("sub eax, ebx\n"); }
+  | MUL       	{ $$ = strdup("mul ebx\n"); }
+  | DIV       	{ $$ = strdup("cdq\nidiv ebx\n"); }
+  | MOD			{ $$ = strdup("cdq\nidiv ebx\nmov edx, eax\n"); }
 ;
 
 constant:
