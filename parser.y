@@ -45,6 +45,12 @@
 				"lea eax, [ebx + eax]\n"	\
 				"mov eax, [eax]\n"
 
+#define ARITHMETIC	"%s"						\
+					"push eax\n"				\
+					"%s"						\
+					"pop ebx\n"					\
+					"%s"
+
 
 int yylex(void);
 void yyerror(const char *s);
@@ -252,7 +258,10 @@ rvalue:
 			$$ = $2;
 		}
 	| rvalue binary rvalue      {
-			asprintf(&$$, "(%s %s %s)", $1, $2, $3); free($1); free($2); free($3);
+			asprintf(&$$, ARITHMETIC, $3, $1, $2);
+			free($1);
+			free($2);
+			free($3);
 		}
 	| rvalue INTERROGATION rvalue COLON rvalue {
 			asprintf(&$$, "(%s ? %s : %s)", $1, $3, $5); free($1); free($3); free($5);
@@ -306,21 +315,21 @@ unary:
 ;
 
 binary:
-	OR        	{ asprintf(&$$, "||"); }
-  | AMPERSAND   { asprintf(&$$, "&&"); }
+	OR        	{ asprintf(&$$, "or eax, ebx\n"); }
+  | AMPERSAND   { asprintf(&$$, "and eax, ebx\n"); }
   | EQUAL     	{ asprintf(&$$, "=="); }
   | UNEQUAL   	{ asprintf(&$$, "!="); }
   | INF       	{ asprintf(&$$, "<"); }
   | INFEQUAL  	{ asprintf(&$$, "<="); }
   | SUP       	{ asprintf(&$$, ">"); }
   | SUPEQUAL  	{ asprintf(&$$, ">="); }
-  | LSHIFT    	{ asprintf(&$$, "<<"); }
-  | RSHIFT    	{ asprintf(&$$, ">>"); }
-  | PLUS      	{ asprintf(&$$, "+"); }
-  | MINUS     	{ asprintf(&$$, "-"); }
-  | MUL       	{ asprintf(&$$, "*"); }
-  | DIV       	{ asprintf(&$$, "/"); }
-  | MOD			{ asprintf(&$$, "%%"); }
+  | LSHIFT    	{ asprintf(&$$, "mov ecx, ebx\nshl eax, cl\n"); }
+  | RSHIFT    	{ asprintf(&$$, "mov ecx, ebx\nshr eax, cl\n"); }
+  | PLUS      	{ asprintf(&$$, "add eax, ebx\n"); }
+  | MINUS     	{ asprintf(&$$, "sub eax, ebx\n"); }
+  | MUL       	{ asprintf(&$$, "mul ebx\n"); }
+  | DIV       	{ asprintf(&$$, "cdq\nidiv ebx\n"); }
+  | MOD			{ asprintf(&$$, "cdq\nidiv ebx\nmov edx, eax\n"); }
 ;
 
 constant:
