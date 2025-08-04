@@ -22,17 +22,16 @@
 
 #define PR_INCREMENT	"%s"					\
 						"mov ebx, [eax]\n"		\
-						"mov ecx, ebx\n"		\
 						"add ebx, %d\n"			\
 						"mov [eax], ebx\n"		\
-						"mov eax, ecx\n"
+						"mov eax, ebx\n"
 
 #define PST_INCREMENT	"%s"					\
 						"mov ebx, [eax]\n"		\
 						"mov ecx, ebx\n"		\
 						"add ebx, %d\n"			\
 						"mov [eax], ebx\n"		\
-						"mov eax, ebx\n"
+						"mov eax, ecx\n"
 
 #define NOT_ASM			"cmp eax, 0\n"			\
 						"sete al\n"				\
