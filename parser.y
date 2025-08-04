@@ -59,6 +59,7 @@ extern int yylineno;
 int label_count = 0;
 int var_count = 0;
 int id_count = 0;
+int call_size = 0;
 
 typedef struct {
 	char *ident;
@@ -143,7 +144,7 @@ variable vars[MAX_VARS];
 %type <str> condition
 %type <str> rvalue
 %type <str> lvalue
-%type <str> rvalues
+%type <str> params
 %type <ival> incdec
 %type <str> unary
 %type <str> binary
@@ -272,21 +273,35 @@ rvalue:
 	| rvalue INTERROGATION rvalue COLON rvalue {
 			asprintf(&$$, "(%s ? %s : %s)", $1, $3, $5); free($1); free($3); free($5);
 		}
-	| rvalue LPAREN rvalues RPAREN {
-			asprintf(&$$, "%s(%s)\n", $1, $3); free($1); free($3);
+	| rvalue LPAREN params RPAREN {
+			asprintf(&$$, "%s%scall eax\nadd esp, %d\n", $3, $1, call_size);
+			call_size = 0;
+			free($1);
+			free($3);
 		}
 	| rvalue LPAREN RPAREN {
-			asprintf(&$$, "%s()", $1); free($1);
+			asprintf(&$$, "%s\ncall eax\nadd esp, %d\n", $1, call_size);
+			call_size = 0;
+			free($1);
 		}
 	| constant { $$ = $1; }
-	| lvalue                    { $$ = $1; }
+	| lvalue	{
+		asprintf(&$$, "%smov eax, [eax]\n", $1);
+		free($1);
+	}
 ;
 
-rvalues:
-	rvalue COMMA rvalues {
-		asprintf(&$$, "%s, %s", $1, $3); free($1); free($3);
+params:
+	params COMMA rvalue {
+		asprintf(&$$, "%spush eax\n%s", $3, $1);
+		call_size += 4;
+		free($3);
 	}
-  | rvalue { $$ = $1; }
+  | rvalue {
+		asprintf(&$$, "%spush eax\n", $1);
+		call_size += 4;
+		free($1);
+	}
 ;
 
 lvalue:
@@ -296,11 +311,11 @@ lvalue:
 			if (pos != -1)
 				asprintf(&$$, "lea eax, [ebp - %d]\n", pos);
 			else
-				asprintf(&$$, "lea eax, \"%s\"\n", $1);
+				asprintf(&$$, "lea eax, [%s]\n", $1);
 			free($1);
 	}
 	| MUL rvalue {
-			$$ = strdup("%smov eax, [eax]\n", $2);
+			asprintf(&$$, "%smov eax, [eax]\n", $2);
 			free($2);
 	}
 	| rvalue LBRACK rvalue RBRACK {
@@ -377,6 +392,7 @@ idents:
 	  IDENT COMMA idents { asprintf(&$$, "%s, %s", $1, $3); free($1); }
 	| IDENT              { asprintf(&$$, "%s", $1); free($1); }
 
+/* maybe there is something to write actually */
 extrn:
 	  IDENT COMMA extrn	{ ADD_ID($1, true); $$ = strdup(""); free($1); }
 	| IDENT            	{ ADD_ID($1, true); $$ = strdup(""); free($1); }
