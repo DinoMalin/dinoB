@@ -33,9 +33,17 @@
 						"mov [eax], ebx\n"		\
 						"mov eax, ecx\n"
 
-#define NOT_ASM			"cmp eax, 0\n"			\
-						"sete al\n"				\
-						"movzx eax, al\n"
+#define NOT_ASM		"cmp eax, 0\n"			\
+					"sete al\n"				\
+					"movzx eax, al\n"
+
+#define ACCESS	"%s"						\
+				"push eax\n"				\
+				"%s"						\
+				"pop ebx\n"					\
+				"shl eax, 2\n"				\
+				"lea eax, [ebx + eax]\n"	\
+				"mov eax, [eax]\n"
 
 
 int yylex(void);
@@ -268,21 +276,23 @@ rvalues:
 
 lvalue:
 	IDENT { 
-		int pos;
-		RETRIEVE_POS($1, pos);
-		if (pos != -1)
-	  		asprintf(&$$, "lea eax, [ebp - %d]\n", pos);
-		else
-	  		asprintf(&$$, "lea eax, \"%s\"\n", $1);
-		free($1);
+			int pos;
+			RETRIEVE_POS($1, pos);
+			if (pos != -1)
+				asprintf(&$$, "lea eax, [ebp - %d]\n", pos);
+			else
+				asprintf(&$$, "lea eax, \"%s\"\n", $1);
+			free($1);
 	}
 	| MUL rvalue {
 			$$ = strdup("mov eax, [eax]\n");
 			free($2);
 	}
 	| rvalue LBRACK rvalue RBRACK {
-			asprintf(&$$, "%s[%s]", $1, $3); free($1); free($3);
-		}
+			asprintf(&$$, ACCESS, $1, $3);
+			free($1);
+			free($3);
+	}
 ;
 
 incdec:
