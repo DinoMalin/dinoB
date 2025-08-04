@@ -216,11 +216,11 @@ statement:
 			free($2);
 		}
 	| RETURN LPAREN rvalue RPAREN SEMICOLON {
-			asprintf(&$$, "%sret\n", $3);
+			asprintf(&$$, "%sleave\nret\n", $3);
 			free($3);
 		}
 	| RETURN SEMICOLON {
-			$$ = strdup("ret\n");
+			$$ = strdup("leave\nret\n");
 		}
 	| rvalue SEMICOLON {
 			$$ = $1;
