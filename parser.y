@@ -186,17 +186,19 @@ definition:
 
 statement:
 	  LBRACE statements RBRACE       {
-	  		asprintf(&$$, "{\n%s}\n", $2); free($2);
+	  		asprintf(&$$, "%s", $2);
+			free($2);
 		}
 	| AUTO variables SEMICOLON {
 			$$ = $2;
 		}
 	| EXTRN extrn SEMICOLON  {
-			asprintf(&$$, "%s", $2);
-			free($2);
+			$$ = $2;
 		}
 	| IDENT COLON statement {
-			asprintf(&$$, "%s:\n%s", $1, $3); free($3);
+			asprintf(&$$, "%s:\n%s", $1, $3);
+			free($1);
+			free($3);
 		}
 	| IF condition statement {
 			asprintf(&$$, "if%s\n%s", $2, $3); free($2); free($3);
@@ -209,7 +211,8 @@ statement:
 			asprintf(&$$, "while%s\n%s", $2, $3); free($2); free($3);
 		}
 	| GOTO rvalue SEMICOLON {
-			asprintf(&$$, "jmp %s\n", $2); free($2);
+			asprintf(&$$, "jmp %s\n", $2);
+			free($2);
 		}
 	| RETURN LPAREN rvalue RPAREN SEMICOLON {
 			asprintf(&$$, "return(%s);\n", $3); free($3);
@@ -218,9 +221,9 @@ statement:
 			asprintf(&$$, "return;\n");
 		}
 	| rvalue SEMICOLON {
-			asprintf(&$$, "%s", $1); free($1);
+			$$ = $1;
 		}
-  	| SEMICOLON { $$ = strdup(";\n"); }
+  	| SEMICOLON { $$ = strdup(""); }
 ;
 
 statements:
@@ -336,11 +339,11 @@ binary:
 
 constant:
 	NUM			{
-		asprintf(&$$, "mov eax, %d", $1);
+		asprintf(&$$, "mov eax, %d\n", $1);
 	}
   |	CHAR		{
   		int c = strcspn($1, "'") != 2 ? $1[1] : $1[2];
-  		asprintf(&$$, "mov eax, %d", c);
+  		asprintf(&$$, "mov eax, %d\n", c);
 		free($1);
 	}
   |	STRING		{
@@ -358,10 +361,10 @@ assign:
 ;
 
 variables:
-	  IDENT						{ ADD_ID($1, false); $$ = strdup(""); }
-	| IDENT NUM                 { ADD_ID($1, false); $$ = strdup(""); }
-	| variables COMMA IDENT     { ADD_ID($3, false); $$ = strdup(""); }
-	| variables COMMA IDENT NUM { ADD_ID($3, false); $$ = strdup(""); }
+	  IDENT						{ ADD_ID($1, false); $$ = strdup(""); free($1); }
+	| IDENT NUM                 { ADD_ID($1, false); $$ = strdup(""); free($1); }
+	| variables COMMA IDENT     { ADD_ID($3, false); $$ = strdup(""); free($1); }
+	| variables COMMA IDENT NUM { ADD_ID($3, false); $$ = strdup(""); free($1); }
 ;
 
 ivals:
@@ -374,8 +377,8 @@ idents:
 	| IDENT              { asprintf(&$$, "%s", $1); free($1); }
 
 extrn:
-	  IDENT COMMA extrn	{ ADD_ID($1, true); free($1); }
-	| IDENT            	{ ADD_ID($1, true); free($1); }
+	  IDENT COMMA extrn	{ ADD_ID($1, true); $$ = strdup(""); free($1); }
+	| IDENT            	{ ADD_ID($1, true); $$ = strdup(""); free($1); }
 ;
 
 %%
