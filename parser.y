@@ -211,14 +211,15 @@ statement:
 			asprintf(&$$, "while\n%s%s", $2, $3); free($2); free($3);
 		}
 	| GOTO rvalue SEMICOLON {
-			asprintf(&$$, "jmp %s\n", $2);
+			asprintf(&$$, "%sjmp eax\n", $2);
 			free($2);
 		}
 	| RETURN LPAREN rvalue RPAREN SEMICOLON {
-			asprintf(&$$, "return(%s);\n", $3); free($3);
+			asprintf(&$$, "%sret\n", $3);
+			free($3);
 		}
 	| RETURN SEMICOLON {
-			asprintf(&$$, "return;\n");
+			$$ = strdup("ret\n");
 		}
 	| rvalue SEMICOLON {
 			$$ = $1;
@@ -239,8 +240,7 @@ condition:
 
 rvalue:
 	  LPAREN rvalue RPAREN {
-			asprintf(&$$, "%s", $2);
-			free($2);
+			$$ = $2;
 		}
 	| lvalue assign rvalue      {
 			asprintf(&$$, ASSIGNEMENT, $1, $3);
@@ -300,7 +300,7 @@ lvalue:
 			free($1);
 	}
 	| MUL rvalue {
-			$$ = strdup("mov eax, [eax]\n");
+			$$ = strdup("%smov eax, [eax]\n", $2);
 			free($2);
 	}
 	| rvalue LBRACK rvalue RBRACK {
