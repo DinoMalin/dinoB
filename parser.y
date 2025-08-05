@@ -394,8 +394,16 @@ idents:
 
 /* maybe there is something to write actually */
 extrn:
-	  IDENT COMMA extrn	{ ADD_ID($1, true); $$ = strdup(""); free($1); }
-	| IDENT            	{ ADD_ID($1, true); $$ = strdup(""); free($1); }
+	IDENT COMMA extrn	{
+	  	ADD_ID($1, true);
+	  	asprintf(&$$, "extern %s\n", $1);
+		free($1);
+	}
+	| IDENT            	{
+		ADD_ID($1, true);
+		asprintf(&$$, "extern %s\n", $1);
+		free($1);
+	}
 ;
 
 %%
