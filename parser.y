@@ -125,8 +125,7 @@ variable vars[MAX_VARS];
 			}										\
 		}											\
 		if (i == id_count) {						\
-			yyerror("identifier doesn't exist");	\
-			YYABORT;								\
+			dst = 0;								\
 		}											\
 	}
 	extern int yydebug;
@@ -346,7 +345,7 @@ lvalue:
 	IDENT { 
 			int pos;
 			RETRIEVE_POS($1, pos);
-			if (pos != -1)
+			if (pos && pos != -1)
 				asprintf(&$$, "lea eax, [ebp - %d]\n", pos);
 			else
 				asprintf(&$$, "lea eax, [%s]\n", $1);

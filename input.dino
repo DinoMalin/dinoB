@@ -5,6 +5,12 @@ main(ac, av, env)
 	i = 0;
 	s = "hello, world\n";
 	ac = 42;
+	notexisitingvalue = 4;
+	if (i) {
+		i = 1;
+	} else {
+		i = 2;
+	}
 	while (char(s, i))
 	{
 		putchar(char(s, i));
