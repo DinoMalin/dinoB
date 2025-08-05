@@ -1,9 +1,10 @@
-main()
+main(ac, av, env)
 {
 	extrn putchar, char;
 	auto i, s;
 	i = 0;
 	s = "hello, world\n";
+	ac = 42;
 	while (char(s, i))
 	{
 		putchar(char(s, i));

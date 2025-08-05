@@ -151,7 +151,7 @@ variable vars[MAX_VARS];
 %type <str> constant
 %type <str> assign
 %type <str> variables
-%type <str> idents
+%type <str> function_params
 %type <str> extrn
 
 %%
@@ -159,6 +159,7 @@ variable vars[MAX_VARS];
 program:
 	definition			{ printf("%s", $1); free($1); }
   |	definition program	{ printf("%s", $1); free($1); }
+;
 
 definition:
 	IDENT SEMICOLON	{ asprintf(&$$, "%s;\n", $1); }
@@ -177,13 +178,17 @@ definition:
   |	IDENT LPAREN RPAREN statements {
   		RESET_STACK();
   		asprintf(&$$, ".globl %s\n%s:\n"ENTER"%s", $1, $1, $4);
+		free($1);
 		free($4);
 	}
-  |	IDENT LPAREN idents RPAREN statements {
+  |	IDENT LPAREN function_params RPAREN statements {
 		RESET_STACK();
   		asprintf(&$$, ".globl %s\n%s:\n"ENTER"%s", $1, $1, $5);
+  		free($1); 
+  		free($3); 
   		free($5); 
   }
+;
 
 statement:
 	  LBRACE statements RBRACE       {
@@ -367,6 +372,7 @@ constant:
 		free($1);
   		label_count++;
 	}
+;
 
 /* todo: no assign/binary, separate the tokens */
 assign:
@@ -383,16 +389,16 @@ variables:
 	| variables COMMA IDENT NUM { ADD_ID($3, false); $$ = strdup(""); free($1); }
 ;
 
+function_params:
+	  IDENT						{ ADD_ID($1, false); $$ = strdup(""); free($1); }
+	| variables COMMA IDENT     { ADD_ID($3, false); $$ = strdup(""); free($1); }
+;
+
 ivals:
 	  NUM COMMA ivals   { asprintf(&$$, "%d, %s", $1, $3); free($3); }
 	| NUM               { asprintf(&$$, "%d", $1); }
 ;
 
-idents:
-	  IDENT COMMA idents { asprintf(&$$, "%s, %s", $1, $3); free($1); }
-	| IDENT              { asprintf(&$$, "%s", $1); free($1); }
-
-/* maybe there is something to write actually */
 extrn:
 	IDENT COMMA extrn	{
 	  	ADD_ID($1, true);
