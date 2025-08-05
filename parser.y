@@ -18,7 +18,7 @@
 					".LC%d:\n"				\
 					".string %s\n"			\
 					".text\n"				\
-					"mov eax, LC%d\n"
+					"mov eax, .LC%d\n"
 
 #define PR_INCREMENT	"%s"					\
 						"mov ebx, [eax]\n"		\
@@ -50,6 +50,26 @@
 					"%s"						\
 					"pop ebx\n"					\
 					"%s"
+
+#define IF_ASM		"%s"			\
+					"je .LC%d\n"	\
+					"%s"			\
+					".LC%d:\n"
+
+#define IFELSE_ASM	"%s"			\
+					"je .LC%d\n"	\
+					"%s"			\
+					"jmp .LC%d\n"	\
+					".LC%d:\n"		\
+					"%s"			\
+					".LC%d:\n"
+
+#define WHILE_ASM	".LC%d:\n"		\
+					"%s"			\
+					"je .LC%d\n"	\
+					"%s"			\
+					"je .LC%d\n"	\
+					".LC%d:\n"		 
 
 
 int yylex(void);
@@ -207,14 +227,27 @@ statement:
 			free($3);
 		}
 	| IF condition statement {
-			asprintf(&$$, "if%s\n%s", $2, $3); free($2); free($3);
+			asprintf(&$$, IF_ASM, $2, label_count, $3, label_count);
+			label_count++;
+			free($2);
+			free($3);
 		}
 	| IF condition statement ELSE statement {
-			asprintf(&$$, "if\n%s%selse\n%s", $2, $3, $5);
-			free($2); free($3); free($5);
+			asprintf(&$$, IFELSE_ASM,
+				$2, label_count, $3, label_count+1, label_count, $5, label_count+1
+			);
+			label_count += 2;
+			free($2);
+			free($3);
+			free($5);
 		}
 	| WHILE condition statement {
-			asprintf(&$$, "while\n%s%s", $2, $3); free($2); free($3);
+			asprintf(&$$, WHILE_ASM,
+				label_count, $2, label_count+1, $3, label_count, label_count+1
+			);
+			label_count += 2;
+			free($2);
+			free($3);
 		}
 	| GOTO rvalue SEMICOLON {
 			asprintf(&$$, "%sjmp eax\n", $2);
@@ -239,7 +272,7 @@ statements:
 
 condition:
 	LPAREN rvalue RPAREN {
-		asprintf(&$$, "%scmp eax, 0\nsetne al\nmovzx eax, al\n", $2);
+		asprintf(&$$, "%scmp eax, 0\n", $2);
 		free($2);
 	}
 ;
