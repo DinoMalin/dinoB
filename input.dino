@@ -1,3 +1,11 @@
+dino;
+dinos[45];
+moredinos[10] 1, 2, 3, 4;
+moredinosa[11] 1, 2, 3, 4;
+moredinosb[11] 1, 2, 3, 4, 5;
+moredinosc[10] 1, 2, 3, 4, 5;
+dinoagain[] 1, 2, 3, 4;
+
 main(ac, av, env)
 {
 	extrn putchar, char;

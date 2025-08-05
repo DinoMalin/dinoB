@@ -71,6 +71,13 @@
 					"je .LC%d\n"	\
 					".LC%d:\n"		 
 
+#define BSS			"section .bss\n"	\
+					"global %s\n"		\
+					"%s: resb %d\n"
+
+#define DATA		"section .data\n"	\
+					"global %s\n"		\
+					"%s: dd %s\n"
 
 int yylex(void);
 void yyerror(const char *s);
@@ -129,6 +136,26 @@ variable vars[MAX_VARS];
 		}											\
 	}
 	extern int yydebug;
+
+char* repeat_string(const char* str, int times) {
+    if (times <= 0 || str == NULL) return NULL;
+
+    size_t len = strlen(str);
+    size_t total_len = len * times;
+
+    // +1 for null terminator
+    char* result = malloc(total_len + 1);
+    if (!result) return NULL;
+
+    char* ptr = result;
+    for (int i = 0; i < times; i++) {
+        memcpy(ptr, str, len);
+        ptr += len;
+    }
+
+    result[total_len] = '\0';
+    return result;
+}
 %}
 
 %debug
@@ -157,7 +184,7 @@ variable vars[MAX_VARS];
 %left MUL DIV
 
 %type <str> definition
-%type <str> ivals
+%type <str> numbers
 %type <str> statement
 %type <str> statements
 %type <str> condition
@@ -177,32 +204,43 @@ variable vars[MAX_VARS];
 
 program:
 	definition			{ printf("%s", $1); free($1); }
-  |	definition program	{ printf("%s", $1); free($1); }
+  |	program definition	{ printf("%s", $2); free($2); }
 ;
 
 definition:
-	IDENT SEMICOLON	{ asprintf(&$$, "%s;\n", $1); }
-  |	IDENT ivals SEMICOLON { asprintf(&$$, "%s %s;", $1, $2); free($2); }
-
+	IDENT SEMICOLON	{
+		asprintf(&$$, BSS, $1, $1, 4);
+		free($1);
+	}
+  |	IDENT numbers SEMICOLON { asprintf(&$$, "%s %s;", $1, $2); free($2); }
   |	IDENT LBRACK RBRACK SEMICOLON	{ asprintf(&$$, "%s[];\n", $1); }
-  |	IDENT LBRACK RBRACK ivals SEMICOLON	{ asprintf(&$$, "%s [] %s;\n", $1, $4);
+  |	IDENT LBRACK RBRACK numbers SEMICOLON	{
+  		asprintf(&$$, DATA, $1, $1, $4);
+  		free($1);
   		free($4);
 	}
-
-  |	IDENT LBRACK NUM RBRACK SEMICOLON	{ asprintf(&$$, "%s [%d];\n", $1, $3); }
-  |	IDENT LBRACK NUM RBRACK ivals SEMICOLON { asprintf(&$$, "%s [%d] %s;", $1, $3, $5);
-		free($5);	
+  |	IDENT LBRACK NUM RBRACK SEMICOLON	{
+		asprintf(&$$, BSS, $1, $1, $3*4);
+		free($1);
 	}
-
+  |	IDENT LBRACK NUM RBRACK numbers SEMICOLON {
+		char *padding = repeat_string(", 0", $3-(strlen($5)+2)/3);
+		char *init; asprintf(&init, "%s%s", $5, padding);
+  		asprintf(&$$, DATA, $1, $1, init);
+		free($1);
+		free($5);
+		free(init);
+		free(padding);
+	}
   |	IDENT LPAREN RPAREN statements {
   		RESET_STACK();
-  		asprintf(&$$, ".globl %s\n%s:\n"ENTER"%s", $1, $1, $4);
+  		asprintf(&$$, "section .text\n.globl %s\n%s:\n"ENTER"%s", $1, $1, $4);
 		free($1);
 		free($4);
 	}
   |	IDENT LPAREN function_params RPAREN statements {
 		RESET_STACK();
-  		asprintf(&$$, ".globl %s\n%s:\n"ENTER"%s", $1, $1, $5);
+  		asprintf(&$$, "section .text\n.globl %s\n%s:\n"ENTER"%s", $1, $1, $5);
   		free($1); 
   		free($3); 
   		free($5); 
@@ -426,8 +464,8 @@ function_params:
 	| variables COMMA IDENT     { ADD_ID($3, false); $$ = strdup(""); free($1); }
 ;
 
-ivals:
-	  NUM COMMA ivals   { asprintf(&$$, "%d, %s", $1, $3); free($3); }
+numbers:
+	  NUM COMMA numbers { asprintf(&$$, "%d, %s", $1, $3); free($3); }
 	| NUM               { asprintf(&$$, "%d", $1); }
 ;
 
