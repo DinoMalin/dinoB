@@ -85,6 +85,7 @@ extern int yylineno;
 
 int label_count = 0;
 int var_count = 0;
+int param_count = 1;
 int id_count = 0;
 int call_size = 0;
 
@@ -92,11 +93,12 @@ typedef struct {
 	char *ident;
 	int pos;
 	bool func;
+	bool param;
 } variable;
 
 variable vars[MAX_VARS];
 
-#define ADD_ID(_ident, _func)							\
+#define ADD_ID(_ident, _func, _param)					\
 	{													\
 		if (id_count >= MAX_VARS) {						\
 			yyerror("too many identifiers");			\
@@ -106,6 +108,10 @@ variable vars[MAX_VARS];
 			if (_func) {								\
 				vars[id_count].func = true;				\
 				vars[id_count].pos = -1;				\
+			} else if (_param) {						\
+				vars[id_count].param = true;			\
+				vars[id_count].pos = (param_count+1)*4;	\
+				param_count++;							\
 			} else {									\
 				vars[id_count].pos = (var_count+1)*4;	\
 				var_count++;							\
@@ -122,17 +128,18 @@ variable vars[MAX_VARS];
 		id_count = 0;								\
 	}
 
-#define RETRIEVE_POS(_ident, dst)					\
+#define RETRIEVE_POS(_ident, pos, param)			\
 	{												\
 		int i = 0;									\
 		for (; i < id_count; i++) {					\
 			if (!strcmp(vars[i].ident, _ident)) {	\
-				dst = vars[i].pos;					\
+				pos = vars[i].pos;					\
+				param = vars[i].param;				\
 				break;								\
 			}										\
 		}											\
 		if (i == id_count) {						\
-			dst = 0;								\
+			pos = 0;								\
 		}											\
 	}
 	extern int yydebug;
@@ -213,7 +220,6 @@ definition:
 		free($1);
 	}
   |	IDENT numbers SEMICOLON { asprintf(&$$, "%s %s;", $1, $2); free($2); }
-  |	IDENT LBRACK RBRACK SEMICOLON	{ asprintf(&$$, "%s[];\n", $1); }
   |	IDENT LBRACK RBRACK numbers SEMICOLON	{
   		asprintf(&$$, DATA, $1, $1, $4);
   		free($1);
@@ -382,9 +388,12 @@ params:
 lvalue:
 	IDENT { 
 			int pos;
-			RETRIEVE_POS($1, pos);
-			if (pos && pos != -1)
+			bool param;
+			RETRIEVE_POS($1, pos, param);
+			if (!param && pos && pos != -1)
 				asprintf(&$$, "lea eax, [ebp - %d]\n", pos);
+			else if (param)
+				asprintf(&$$, "lea eax, [ebp + %d]\n", pos);
 			else
 				asprintf(&$$, "lea eax, [%s]\n", $1);
 			free($1);
@@ -453,15 +462,41 @@ assign:
 ;
 
 variables:
-	  IDENT						{ ADD_ID($1, false); $$ = strdup(""); free($1); }
-	| IDENT NUM                 { ADD_ID($1, false); $$ = strdup(""); free($1); }
-	| variables COMMA IDENT     { ADD_ID($3, false); $$ = strdup(""); free($1); }
-	| variables COMMA IDENT NUM { ADD_ID($3, false); $$ = strdup(""); free($1); }
+	IDENT	{
+			ADD_ID($1, false, false);
+	  		$$ = strdup("sub esp, 4\n");
+			free($1);
+	}
+	| IDENT NUM	{
+			ADD_ID($1, false, false);
+	  		$$ = strdup("sub esp, 4\n");
+			free($1);
+	}
+	| variables COMMA IDENT     {
+			ADD_ID($3, false, false);
+			asprintf(&$$, "%ssub esp, 4\n", $1);
+			free($1);
+			free($3);
+	}
+	| variables COMMA IDENT NUM {
+			ADD_ID($3, false, false);
+			asprintf(&$$, "%ssub esp, 4\n", $1);
+			free($1);
+			free($3);
+	}
 ;
 
 function_params:
-	  IDENT						{ ADD_ID($1, false); $$ = strdup(""); free($1); }
-	| variables COMMA IDENT     { ADD_ID($3, false); $$ = strdup(""); free($1); }
+	IDENT	{
+	  		ADD_ID($1, false, true);
+			$$ = strdup("");
+			free($1);
+	}
+	| function_params COMMA IDENT	{
+			ADD_ID($3, false, true);
+			$$ = strdup("");
+			free($1);
+	}
 ;
 
 numbers:
@@ -471,12 +506,12 @@ numbers:
 
 extrn:
 	IDENT COMMA extrn	{
-	  	ADD_ID($1, true);
+	  	ADD_ID($1, true, false);
 	  	asprintf(&$$, "extern %s\n", $1);
 		free($1);
 	}
 	| IDENT            	{
-		ADD_ID($1, true);
+		ADD_ID($1, true, false);
 		asprintf(&$$, "extern %s\n", $1);
 		free($1);
 	}
