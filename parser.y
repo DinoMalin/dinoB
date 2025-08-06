@@ -14,10 +14,10 @@
 					"pop ebx\n"				\
 					"mov [ebx], eax\n"
 
-#define CONST_STR	".section .rodata\n"	\
+#define CONST_STR	"section .rodata\n"		\
 					".LC%d:\n"				\
-					".string %s\n"			\
-					".text\n"				\
+					"db %s\n"				\
+					"section .text\n"		\
 					"mov eax, .LC%d\n"
 
 #define PR_INCREMENT	"%s"					\
@@ -240,13 +240,13 @@ definition:
 	}
   |	IDENT LPAREN RPAREN statements {
   		RESET_STACK();
-  		asprintf(&$$, "section .text\n.globl %s\n%s:\n"ENTER"%s", $1, $1, $4);
+  		asprintf(&$$, "section .text\nglobal %s\n%s:\n"ENTER"%s", $1, $1, $4);
 		free($1);
 		free($4);
 	}
   |	IDENT LPAREN function_params RPAREN statements {
 		RESET_STACK();
-  		asprintf(&$$, "section .text\n.globl %s\n%s:\n"ENTER"%s", $1, $1, $5);
+  		asprintf(&$$, "section .text\nglobal %s\n%s:\n"ENTER"%s", $1, $1, $5);
   		free($1); 
   		free($3); 
   		free($5); 
@@ -525,7 +525,6 @@ void yyerror(const char *s) {
 
 int main() {
 	yydebug = 0;
-	printf("Enter some B code:\n");
 	yyparse();
 	return 0;
 }
