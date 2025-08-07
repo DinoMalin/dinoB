@@ -14,10 +14,10 @@
 					"pop ebx\n"				\
 					"mov [ebx], eax\n"
 
-#define CONST_STR	"section .rodata\n"		\
+#define CONST_STR	".section .rodata\n"	\
 					".LC%d:\n"				\
-					"db %s\n"				\
-					"section .text\n"		\
+					".string %s\n"			\
+					".section .text\n"		\
 					"mov eax, .LC%d\n"
 
 #define PR_INCREMENT	"%s"					\
@@ -71,13 +71,13 @@
 					"je .LC%d\n"	\
 					".LC%d:\n"		 
 
-#define BSS			"section .bss\n"	\
-					"global %s\n"		\
-					"%s: resb %d\n"
+#define BSS			".section .bss\n"	\
+					".global %s\n"		\
+					"%s: .skip %d\n"
 
-#define DATA		"section .data\n"	\
-					"global %s\n"		\
-					"%s: dd %s\n"
+#define DATA		".section .data\n"	\
+					".global %s\n"		\
+					"%s: .long %s\n"
 
 int yylex(void);
 void yyerror(const char *s);
@@ -240,13 +240,13 @@ definition:
 	}
   |	IDENT LPAREN RPAREN statements {
   		RESET_STACK();
-  		asprintf(&$$, "section .text\nglobal %s\n%s:\n"ENTER"%s", $1, $1, $4);
+  		asprintf(&$$, ".section .text\n.global %s\n%s:\n"ENTER"%s", $1, $1, $4);
 		free($1);
 		free($4);
 	}
   |	IDENT LPAREN function_params RPAREN statements {
 		RESET_STACK();
-  		asprintf(&$$, "section .text\nglobal %s\n%s:\n"ENTER"%s", $1, $1, $5);
+  		asprintf(&$$, ".section .text\n.global %s\n%s:\n"ENTER"%s", $1, $1, $5);
   		free($1); 
   		free($3); 
   		free($5); 
@@ -507,12 +507,12 @@ numbers:
 extrn:
 	IDENT COMMA extrn	{
 	  	ADD_ID($1, true, false);
-	  	asprintf(&$$, "extern %s\n", $1);
+	  	asprintf(&$$, ".extern %s\n", $1);
 		free($1);
 	}
 	| IDENT            	{
 		ADD_ID($1, true, false);
-		asprintf(&$$, "extern %s\n", $1);
+		asprintf(&$$, ".extern %s\n", $1);
 		free($1);
 	}
 ;
@@ -525,6 +525,7 @@ void yyerror(const char *s) {
 
 int main() {
 	yydebug = 0;
+	printf(".intel_syntax noprefix\n");
 	yyparse();
 	return 0;
 }
