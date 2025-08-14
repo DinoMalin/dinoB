@@ -1,27 +1,6 @@
-dino;
-dinos[45];
-moredinos[10] 1, 2, 3, 4;
-moredinosa[11] 1, 2, 3, 4;
-moredinosb[11] 1, 2, 3, 4, 5;
-moredinosc[10] 1, 2, 3, 4, 5;
-dinoagain[] 1, 2, 3, 4;
-
 main(ac, av, env)
 {
-	extrn putchar, char;
-	auto i, s;
-	i = 0;
-	s = "hello, world\n";
-	ac = 42;
-	notexisitingvalue = 4;
-	if (i) {
-		i = 1;
-	} else {
-		i = 2;
-	}
-	while (char(s, i))
-	{
-		putchar(char(s, i));
-		i++;
-	}
+	extrn syscall;
+	syscall(4, 1, "dino\n", 5);
+	return (1);
 }

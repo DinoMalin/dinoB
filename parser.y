@@ -7,7 +7,14 @@
 
 #define MAX_VARS 511
 
-#define ENTER "push ebp\nmov ebp, esp\n"
+#define FUNCTION	".section .text\n"		\
+					".global %s\n"			\
+					"%s:\n"					\
+					".long %s + 4\n"		\
+					"push ebp\n"			\
+					"mov ebp, esp\n"		\
+					"%s"
+
 #define ASSIGNEMENT "%s"					\
 					"push eax\n"			\
 					"%s"					\
@@ -18,7 +25,7 @@
 					".LC%d:\n"				\
 					".string %s\n"			\
 					".section .text\n"		\
-					"mov eax, .LC%d\n"
+					"lea eax, [.LC%d]\n"
 
 #define PR_INCREMENT	"%s"					\
 						"mov ebx, [eax]\n"		\
@@ -240,13 +247,13 @@ definition:
 	}
   |	IDENT LPAREN RPAREN statements {
   		RESET_STACK();
-  		asprintf(&$$, ".section .text\n.global %s\n%s:\n"ENTER"%s", $1, $1, $4);
+		asprintf(&$$, FUNCTION, $1, $1, $1, $4);
 		free($1);
 		free($4);
 	}
   |	IDENT LPAREN function_params RPAREN statements {
 		RESET_STACK();
-  		asprintf(&$$, ".section .text\n.global %s\n%s:\n"ENTER"%s", $1, $1, $5);
+		asprintf(&$$, FUNCTION, $1, $1, $1, $5);
   		free($1); 
   		free($3); 
   		free($5); 
@@ -395,7 +402,7 @@ lvalue:
 			else if (param)
 				asprintf(&$$, "lea eax, [ebp + %d]\n", pos);
 			else
-				asprintf(&$$, "lea eax, [%s]\n", $1);
+				asprintf(&$$, "lea eax, %s\n", $1);
 			free($1);
 	}
 	| MUL rvalue {
