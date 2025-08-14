@@ -39,3 +39,4 @@ adjust:
 	gcc -c -m32 -x assembler bin/asm.s -o bin/obj.o
 	ld -m elf_i386 bin/obj.o brt0.o
 
+re: clean all

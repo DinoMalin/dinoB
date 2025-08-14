@@ -87,6 +87,8 @@ char* repeat_string(const char* str, int times) {
 %type <str> function_params
 %type <str> extrn
 
+%nonassoc IFX
+%nonassoc ELSE
 %%
 
 program:
@@ -124,7 +126,7 @@ definition:
 		free($1);
 		free($4);
 	}
-  |	IDENT LPAREN function_params RPAREN statements {
+  |	IDENT LPAREN function_params RPAREN statement {
 		RESET_STACK();
 		asprintf(&$$, FUNCTION, $1, $1, $1, $5);
   		free($1); 
@@ -149,7 +151,7 @@ statement:
 			free($1);
 			free($3);
 		}
-	| IF condition statement {
+	| IF condition statement %prec IFX {
 			asprintf(&$$, IF_ASM, $2, label_count, $3, label_count);
 			label_count++;
 			free($2);
