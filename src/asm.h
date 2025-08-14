@@ -76,4 +76,3 @@
 #define DATA		".section .data\n"	\
 					".global %s\n"		\
 					"%s: .long %s\n"
-
