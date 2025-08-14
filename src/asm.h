@@ -66,7 +66,7 @@
 					"%s"			\
 					"je .LC%d\n"	\
 					"%s"			\
-					"je .LC%d\n"	\
+					"jmp .LC%d\n"	\
 					".LC%d:\n"		 
 
 #define BSS			".section .bss\n"	\

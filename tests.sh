@@ -21,7 +21,7 @@ for i in tests/*.b; do
 	exp="tests/${pure}.exp"
 	compile $pure
 
-	res="tests/bin/res"
+	res="tests/bin/res_$pure"
 	test=$(./tests/bin/test_$pure > $res)
 	diff=$(diff $exp $res)
 
