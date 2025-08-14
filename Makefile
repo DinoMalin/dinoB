@@ -1,9 +1,9 @@
 PROG = B
-TOKEN = scanner.l
-PARSE = parser.y
+TOKEN = src/scanner.l
+PARSE = src/parser.y
 
-TOKEN_COMP = lex.yy.c
-PARSE_COMP = parser.tab.c
+TOKEN_COMP = src/lex.yy.c
+PARSE_COMP = src/parser.tab.c
 
 BIN = ./bin
 ASM = bin/asm.s
@@ -15,13 +15,13 @@ all: $(TOKEN_COMP) $(PARSE_COMP)
 	gcc $(TOKEN_COMP) $(PARSE_COMP) -o $(PROG)
 
 $(TOKEN_COMP): $(TOKEN)
-	flex $(TOKEN)
+	flex -o $(TOKEN_COMP) $(TOKEN)
 
 $(PARSE_COMP): $(PARSE)
-	bison -d $(PARSE)
+	bison -d $(PARSE) -H -o src/parser.tab.c
 
 clean:
-	rm -f $(TOKEN_COMP) $(PARSE_COMP) parser.tab.h
+	rm -f $(TOKEN_COMP) $(PARSE_COMP) $(PROG) src/parser.tab.h
 
 compile: $(PROG) $(BIN) $(OBJ)
 	ld -m elf_i386 bin/obj.o brt0.o

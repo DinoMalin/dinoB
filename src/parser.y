@@ -5,86 +5,10 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "asm.h"
+#include "vars.h"
+
 #define MAX_VARS 511
-
-#define FUNCTION	".section .text\n"		\
-					".global %s\n"			\
-					"%s:\n"					\
-					".long %s + 4\n"		\
-					"push ebp\n"			\
-					"mov ebp, esp\n"		\
-					"%s"
-
-#define ASSIGNEMENT "%s"					\
-					"push eax\n"			\
-					"%s"					\
-					"pop ebx\n"				\
-					"mov [ebx], eax\n"
-
-#define CONST_STR	".section .rodata\n"	\
-					".LC%d:\n"				\
-					".string %s\n"			\
-					".section .text\n"		\
-					"lea eax, [.LC%d]\n"
-
-#define PR_INCREMENT	"%s"					\
-						"mov ebx, [eax]\n"		\
-						"add ebx, %d\n"			\
-						"mov [eax], ebx\n"		\
-						"mov eax, ebx\n"
-
-#define PST_INCREMENT	"%s"					\
-						"mov ebx, [eax]\n"		\
-						"mov ecx, ebx\n"		\
-						"add ebx, %d\n"			\
-						"mov [eax], ebx\n"		\
-						"mov eax, ecx\n"
-
-#define NOT_ASM		"cmp eax, 0\n"			\
-					"sete al\n"				\
-					"movzx eax, al\n"
-
-#define ACCESS	"%s"						\
-				"push eax\n"				\
-				"%s"						\
-				"pop ebx\n"					\
-				"shl eax, 2\n"				\
-				"lea eax, [ebx + eax]\n"	\
-				"mov eax, [eax]\n"
-
-#define ARITHMETIC	"%s"						\
-					"push eax\n"				\
-					"%s"						\
-					"pop ebx\n"					\
-					"%s"
-
-#define IF_ASM		"%s"			\
-					"je .LC%d\n"	\
-					"%s"			\
-					".LC%d:\n"
-
-#define IFELSE_ASM	"%s"			\
-					"je .LC%d\n"	\
-					"%s"			\
-					"jmp .LC%d\n"	\
-					".LC%d:\n"		\
-					"%s"			\
-					".LC%d:\n"
-
-#define WHILE_ASM	".LC%d:\n"		\
-					"%s"			\
-					"je .LC%d\n"	\
-					"%s"			\
-					"je .LC%d\n"	\
-					".LC%d:\n"		 
-
-#define BSS			".section .bss\n"	\
-					".global %s\n"		\
-					"%s: .skip %d\n"
-
-#define DATA		".section .data\n"	\
-					".global %s\n"		\
-					"%s: .long %s\n"
 
 int yylex(void);
 void yyerror(const char *s);
@@ -96,60 +20,9 @@ int param_count = 1;
 int id_count = 0;
 int call_size = 0;
 
-typedef struct {
-	char *ident;
-	int pos;
-	bool func;
-	bool param;
-} variable;
-
 variable vars[MAX_VARS];
 
-#define ADD_ID(_ident, _func, _param)					\
-	{													\
-		if (id_count >= MAX_VARS) {						\
-			yyerror("too many identifiers");			\
-			YYABORT;									\
-		} else {										\
-			vars[id_count].ident = strdup(_ident);		\
-			if (_func) {								\
-				vars[id_count].func = true;				\
-				vars[id_count].pos = -1;				\
-			} else if (_param) {						\
-				vars[id_count].param = true;			\
-				vars[id_count].pos = (param_count+1)*4;	\
-				param_count++;							\
-			} else {									\
-				vars[id_count].pos = (var_count+1)*4;	\
-				var_count++;							\
-			}											\
-			id_count++;									\
-		}												\
-	}
-
-#define RESET_STACK()								\
-	{												\
-		for (int i = 0; i < id_count; i++) {		\
-			free(vars[i].ident);					\
-		}											\
-		id_count = 0;								\
-	}
-
-#define RETRIEVE_POS(_ident, pos, param)			\
-	{												\
-		int i = 0;									\
-		for (; i < id_count; i++) {					\
-			if (!strcmp(vars[i].ident, _ident)) {	\
-				pos = vars[i].pos;					\
-				param = vars[i].param;				\
-				break;								\
-			}										\
-		}											\
-		if (i == id_count) {						\
-			pos = 0;								\
-		}											\
-	}
-	extern int yydebug;
+extern int yydebug;
 
 char* repeat_string(const char* str, int times) {
     if (times <= 0 || str == NULL) return NULL;
@@ -226,7 +99,7 @@ definition:
 		asprintf(&$$, BSS, $1, $1, 4);
 		free($1);
 	}
-  |	IDENT numbers SEMICOLON { asprintf(&$$, "%s %s;", $1, $2); free($2); }
+  |	IDENT numbers SEMICOLON { asprintf(&$$, "%s %s;", $1, $2); free($2); } // todo: maybe just number
   |	IDENT LBRACK RBRACK numbers SEMICOLON	{
   		asprintf(&$$, DATA, $1, $1, $4);
   		free($1);
