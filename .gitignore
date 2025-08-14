@@ -1,3 +1,5 @@
 lex.yy.c
 parser.tab.*
-arithmetic
+B
+a.out
+bin
