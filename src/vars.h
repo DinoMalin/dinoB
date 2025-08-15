@@ -14,12 +14,16 @@ typedef struct {
 			vars[id_count].ident = strdup(_ident);		\
 			if (_func) {								\
 				vars[id_count].func = true;				\
+				vars[id_count].param = false;			\
 				vars[id_count].pos = -1;				\
 			} else if (_param) {						\
+				vars[id_count].func = false;			\
 				vars[id_count].param = true;			\
 				vars[id_count].pos = (param_count+1)*4;	\
 				param_count++;							\
 			} else {									\
+				vars[id_count].func = false;			\
+				vars[id_count].param = false;			\
 				vars[id_count].pos = (var_count+1)*4;	\
 				var_count++;							\
 			}											\
@@ -33,6 +37,7 @@ typedef struct {
 			free(vars[i].ident);					\
 		}											\
 		id_count = 0;								\
+		param_count = 1;							\
 	}
 
 #define RETRIEVE_POS(_ident, pos, param)			\

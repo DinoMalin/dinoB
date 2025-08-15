@@ -257,7 +257,9 @@ rvalue:
 params:
 	params COMMA rvalue {
 		asprintf(&$$, "%spush eax\n%s", $3, $1);
-		call_size += 4;
+		call_size += 4; // todo: should create an array of call sizes
+						// for each func, because nested calls don't
+						// work properly.
 		free($3);
 	}
   | rvalue {
@@ -269,19 +271,19 @@ params:
 
 lvalue:
 	IDENT { 
-			int pos;
-			bool param;
+			int pos = 0;
+			bool param = false;
 			RETRIEVE_POS($1, pos, param);
 			if (!param && pos && pos != -1)
 				asprintf(&$$, "lea eax, [ebp - %d]\n", pos);
-			else if (param)
+			else if (param && pos != -1)
 				asprintf(&$$, "lea eax, [ebp + %d]\n", pos);
 			else
 				asprintf(&$$, "lea eax, %s\n", $1);
 			free($1);
 	}
 	| MUL rvalue {
-			asprintf(&$$, "%smov eax, [eax]\n", $2);
+			asprintf(&$$, "%s", $2);
 			free($2);
 	}
 	| rvalue LBRACK rvalue RBRACK {

@@ -41,7 +41,6 @@
 				"pop ebx\n"					\
 				"shl eax, 2\n"				\
 				"lea eax, [ebx + eax]\n"	\
-				"mov eax, [eax]\n"
 
 #define ARITHMETIC	"%s"						\
 					"push eax\n"				\
