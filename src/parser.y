@@ -46,9 +46,18 @@ char* repeat_string(const char* str, int times) {
 %}
 
 %debug
+
+%code requires {
+	typedef struct {
+		int nb;
+		char *code;
+	} param_t;
+}
+
 %union {
 	int ival;
 	char *str;
+	param_t param;
 }
 
 %token <ival> NUM
@@ -77,7 +86,7 @@ char* repeat_string(const char* str, int times) {
 %type <str> condition
 %type <str> rvalue
 %type <str> lvalue
-%type <str> params
+%type <param> params
 %type <ival> incdec
 %type <str> unary
 %type <str> binary
@@ -237,14 +246,13 @@ rvalue:
 			asprintf(&$$, "(%s ? %s : %s)", $1, $3, $5); free($1); free($3); free($5);
 		}
 	| rvalue LPAREN params RPAREN {
-			asprintf(&$$, "%s%scall eax\nadd esp, %d\n", $3, $1, call_size);
+			asprintf(&$$, "%s%scall eax\nadd esp, %d\n", $3.code, $1, $3.nb);
 			call_size = 0;
 			free($1);
-			free($3);
+			free($3.code);
 		}
 	| rvalue LPAREN RPAREN {
-			asprintf(&$$, "%s\ncall eax\nadd esp, %d\n", $1, call_size);
-			call_size = 0;
+			asprintf(&$$, "%s\ncall eax\nadd esp, %d\n", $1);
 			free($1);
 		}
 	| constant { $$ = $1; }
@@ -256,15 +264,14 @@ rvalue:
 
 params:
 	params COMMA rvalue {
-		asprintf(&$$, "%spush eax\n%s", $3, $1);
-		call_size += 4; // todo: should create an array of call sizes
-						// for each func, because nested calls don't
-						// work properly.
+  		$$.nb = $1.nb + 4;
+		asprintf(&$$.code, "%spush eax\n%s", $3, $1.code);
+		free($1.code);
 		free($3);
 	}
   | rvalue {
-		asprintf(&$$, "%spush eax\n", $1);
-		call_size += 4;
+  		$$.nb = 4;
+		asprintf(&$$.code, "%spush eax\n", $1);
 		free($1);
 	}
 ;
