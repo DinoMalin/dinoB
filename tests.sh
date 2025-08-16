@@ -23,11 +23,11 @@ for i in tests/*.b; do
 
 	res="tests/bin/res_$pure"
 	test=$(./tests/bin/test_$pure > $res)
-	diff=$(diff $exp $res)
+	diff=$(diff "$exp" "$res")
 
 	if [ -n "$diff" ]; then
-		echo $pure failed:
-		echo $diff
+		echo "$pure" failed:
+		echo "$diff"
 		exit 1
 	fi
 done

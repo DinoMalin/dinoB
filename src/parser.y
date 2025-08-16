@@ -110,7 +110,11 @@ definition:
 		asprintf(&$$, BSS, $1, $1, 4);
 		free($1);
 	}
-  |	IDENT numbers SEMICOLON { asprintf(&$$, "%s %s;", $1, $2); free($2); } // todo: maybe just number
+  |	IDENT NUM SEMICOLON {
+		char *nb; asprintf(&nb, "%d", $2);
+  		asprintf(&$$, DATA, $1, $1, nb);
+		free($1);
+	}
   |	IDENT LBRACK RBRACK numbers SEMICOLON	{
   		asprintf(&$$, DATA, $1, $1, $4);
   		free($1);
