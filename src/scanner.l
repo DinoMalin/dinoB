@@ -51,8 +51,8 @@
 \".*\"			{ yylval.str = strdup(yytext); return STRING; }
 
 
-[0-9]+		{ yylval.ival = atoi(yytext); return NUM; }
-[a-zA-Z]+	{ yylval.str = strdup(yytext); return IDENT; } // todo: should be alpha then alpha-digit
+[0-9]+					{ yylval.ival = atoi(yytext); return NUM; }
+[a-zA-Z][a-zA-Z0-9]*    { yylval.str = strdup(yytext); return IDENT; }
 [ \t\r]+	;
 "\n"		{ yylineno++; }
 
@@ -63,7 +63,7 @@
 
 "//".*			;
 
-.		{ printf("Unknown caracter: %s\n", yytext); }
+.		{ printf("Error: Unknown caracter: %s\n", yytext); }
 %%
 
 int yywrap() {
