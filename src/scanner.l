@@ -32,11 +32,27 @@
 "goto"		return GOTO;
 "return"	return RETURN;
 
-"="			return ASSIGN;
 "++"		return INC;
 "--"		return DEC;
 "!"			return NOT;
 "|"			return OR;
+
+"="			return ASSI;
+"=+"		return ASSIADD;
+"=-"		return ASSISUB;
+"=*"		return ASSIMUL;
+"=/"		return ASSIDIV;
+"=%"		return ASSIMOD;
+"=>>"		return ASSISHR;
+"=<<"		return ASSISHL;
+"=>="		return ASSISUPEQ;
+"=<="		return ASSIINFEQ;
+"=>"		return ASSISUP;
+"=<"		return ASSIINF;
+"==="		return ASSIEQUAL;
+"=!="		return ASSIUNEQ;
+"=&"		return ASSIAND;
+"=|"		return ASSIOR;
 
 "=="		return EQUAL;
 "!="		return UNEQUAL;

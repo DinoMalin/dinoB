@@ -72,7 +72,9 @@ char* repeat_string(const char* str, int times) {
 
 %token SEMICOLON AMPERSAND INTERROGATION COLON COMMA
 %token AUTO EXTRN IF ELSE WHILE GOTO RETURN
-%token ASSIGN INC DEC NOT OR
+%token ASSI ASSIADD ASSISUB ASSIMUL ASSIDIV ASSIMOD ASSISHR ASSISHL ASSIAND
+%token ASSISUPEQ ASSIINFEQ ASSISUP ASSIINF ASSIEQUAL ASSIUNEQ ASSIOR
+%token INC DEC NOT OR
 %token EQUAL UNEQUAL INF INFEQUAL SUP SUPEQUAL
 %token LSHIFT RSHIFT
 
@@ -219,10 +221,8 @@ rvalue:
 	  LPAREN rvalue RPAREN {
 			$$ = $2;
 		}
-	| lvalue assign rvalue      {
-			asprintf(&$$, ASSIGNEMENT, $1, $3);
-			free($1);
-			free($3);
+	| assign {
+			$$ = $1;
 		}
 	| incdec lvalue            {
 			asprintf(&$$, PR_INCREMENT, $2, $1);
@@ -315,21 +315,21 @@ unary:
 ;
 
 binary:
-	OR        	{ $$ = strdup("or eax, ebx\n"); }
-  | AMPERSAND   { $$ = strdup("and eax, ebx\n"); }
-  | EQUAL     	{ $$ = strdup("cmp eax, ebx\nsete al\nmovzx eax, al\n"); }
-  | UNEQUAL   	{ $$ = strdup("cmp eax, ebx\nsetne al\nmovzx eax, al\n"); }
-  | INF       	{ $$ = strdup("cmp eax, ebx\nsetl al\nmovzx eax, al\n"); }
-  | INFEQUAL  	{ $$ = strdup("cmp eax, ebx\nsetle al\nmovzx eax, al\n"); }
-  | SUP       	{ $$ = strdup("cmp eax, ebx\nsetg al\nmovzx eax, al\n"); }
-  | SUPEQUAL  	{ $$ = strdup("cmp eax, ebx\nsetge al\nmovzx eax, al\n"); }
-  | LSHIFT    	{ $$ = strdup("mov ecx, ebx\nshl eax, cl\n"); }
-  | RSHIFT    	{ $$ = strdup("mov ecx, ebx\nshr eax, cl\n"); }
-  | PLUS      	{ $$ = strdup("add eax, ebx\n"); }
-  | MINUS     	{ $$ = strdup("sub eax, ebx\n"); }
-  | MUL       	{ $$ = strdup("mul ebx\n"); }
-  | DIV       	{ $$ = strdup("cdq\nidiv ebx\n"); }
-  | MOD			{ $$ = strdup("cdq\nidiv ebx\nmov edx, eax\n"); }
+	OR        	{ $$ = strdup(OR_ASM); }
+  | AMPERSAND   { $$ = strdup(AND_ASM); }
+  | EQUAL     	{ $$ = strdup(EQUAL_ASM); }
+  | UNEQUAL   	{ $$ = strdup(UNEQ_ASM); }
+  | INF       	{ $$ = strdup(INF_ASM); }
+  | INFEQUAL  	{ $$ = strdup(INFEQ_ASM); }
+  | SUP       	{ $$ = strdup(SUP_ASM); }
+  | SUPEQUAL  	{ $$ = strdup(SUPEQ_ASM); }
+  | LSHIFT    	{ $$ = strdup(LSHIFT_ASM); }
+  | RSHIFT    	{ $$ = strdup(RSHIFT_ASM); }
+  | PLUS      	{ $$ = strdup(ADD_ASM); }
+  | MINUS     	{ $$ = strdup(SUB_ASM); }
+  | MUL       	{ $$ = strdup(MUL_ASM); }
+  | DIV       	{ $$ = strdup(DIV_ASM); }
+  | MOD			{ $$ = strdup(MOD_ASM); }
 ;
 
 constant:
@@ -348,12 +348,55 @@ constant:
 	}
 ;
 
-/* todo: no assign/binary, separate the tokens */
 assign:
-	ASSIGN { asprintf(&$$, "="); }
-  | ASSIGN binary {
-		asprintf(&$$, "=%s", $2); free($2);
-	}
+	lvalue ASSI rvalue      {
+			asprintf(&$$, ASSIGNEMENT, $1, $3); free($1); free($3);
+		}
+	| lvalue ASSIADD rvalue {
+			asprintf(&$$, BIN_ASSIGN(ADD_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSISUB rvalue {
+			asprintf(&$$, BIN_ASSIGN(SUB_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSIMUL rvalue {
+			asprintf(&$$, BIN_ASSIGN(MUL_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSIDIV rvalue {
+			asprintf(&$$, BIN_ASSIGN(DIV_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSIMOD rvalue {
+			asprintf(&$$, BIN_ASSIGN(MOD_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSIAND rvalue {
+			asprintf(&$$, BIN_ASSIGN(AND_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSIOR rvalue {
+			asprintf(&$$, BIN_ASSIGN(OR_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSIEQUAL rvalue {
+			asprintf(&$$, BIN_ASSIGN(EQUAL_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSIUNEQ rvalue {
+			asprintf(&$$, BIN_ASSIGN(UNEQ_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSIINF rvalue {
+			asprintf(&$$, BIN_ASSIGN(INF_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSIINFEQ rvalue {
+			asprintf(&$$, BIN_ASSIGN(INFEQ_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSISUP rvalue {
+			asprintf(&$$, BIN_ASSIGN(SUP_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSISUPEQ rvalue {
+			asprintf(&$$, BIN_ASSIGN(SUPEQ_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSISHR rvalue {
+			asprintf(&$$, BIN_ASSIGN(RSHIFT_ASM), $3, $1); free($1); free($3);
+		}
+	| lvalue ASSISHL rvalue {
+			asprintf(&$$, BIN_ASSIGN(LSHIFT_ASM), $3, $1); free($1); free($3);
+		}
 ;
 
 variables:
