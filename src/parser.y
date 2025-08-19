@@ -43,6 +43,22 @@ char* repeat_string(const char* str, int times) {
     result[total_len] = '\0';
     return result;
 }
+
+char get_char(char *str) {
+	if (*str == '\\') {
+		str++;
+		switch (*str) {
+			case 'n':	return '\n';
+			case 't':	return '\t';
+			case 'r':	return '\r';
+			case '\\':	return '\\';
+			case '0':	return '\0';
+			default: 
+				return *str;
+		}
+	}
+	return *str;
+}
 %}
 
 %debug
@@ -337,7 +353,7 @@ constant:
 		asprintf(&$$, "mov eax, %d\n", $1);
 	}
   |	CHAR		{
-  		int c = strcspn($1, "'") != 2 ? $1[1] : $1[2];
+  		int c = get_char($1+1);
   		asprintf(&$$, "mov eax, %d\n", c);
 		free($1);
 	}
