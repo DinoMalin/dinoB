@@ -1,10 +1,44 @@
-main() {
+putchar(c) {
 	extrn syscall;
-	auto i;
-	i = 0;
-	while (i < 4) {
-		syscall(4, 1, "dino\n", 5);
-		i =+ 1;
+	syscall(4, 1, &c, 1);
+	return;
+}
+
+putnbr(n) {
+    if (n < 0) {
+        putchar('-');
+        n = -n;
+    }
+    if (n >= 10) {
+        putnbr(n / 10);
 	}
+    putchar((n % 10) + '0');
+	return;
+}
+
+test(n) {
+	putnbr(n);
+	putchar('\n');
+	return;
+}
+
+main() {
+	auto i;
+
+	i = 0;
+	test(i);
+
+	i =+ 1;
+	test(i);
+
+	i =* 20;
+	test(i);
+
+	i =/ 2;
+	test(i);
+
+	i =% 7;
+	test(i);
+
 	return (0);
 }

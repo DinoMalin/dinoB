@@ -326,7 +326,7 @@ incdec:
 ;
 
 unary:
-	MINUS { $$ = strdup("neg eax"); }
+	MINUS { $$ = strdup("neg eax\n"); }
   | NOT   { $$ = strdup(NOT_ASM); }
 ;
 
