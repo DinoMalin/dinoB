@@ -29,7 +29,7 @@ for i in tests/*.b; do
 		echo "should error"
 		exit 1
 	elif [[ -f "tests/${pure}.err" ]]; then
-		break
+		continue
 	fi
 
 	res="tests/bin/res_$pure"
