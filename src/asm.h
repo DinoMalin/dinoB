@@ -70,9 +70,9 @@
 
 #define RSHIFT_ASM		"mov ecx, ebx\nshr eax, cl\n"
 #define LSHIFT_ASM		"mov ecx, ebx\nshl eax, cl\n"
-#define SUPEQ_ASM	"cmp eax, ebx\nsetge al\nmovzx eax, al\n"
+#define SUPEQ_ASM		"cmp eax, ebx\nsetge al\nmovzx eax, al\n"
 #define SUP_ASM			"cmp eax, ebx\nsetg al\nmovzx eax, al\n"
-#define INFEQ_ASM	"cmp eax, ebx\nsetle al\nmovzx eax, al\n"
+#define INFEQ_ASM		"cmp eax, ebx\nsetle al\nmovzx eax, al\n"
 #define INF_ASM			"cmp eax, ebx\nsetl al\nmovzx eax, al\n"
 #define UNEQ_ASM		"cmp eax, ebx\nsetne al\nmovzx eax, al\n"
 #define EQUAL_ASM		"cmp eax, ebx\nsete al\nmovzx eax, al\n"
@@ -84,7 +84,7 @@
 #define DIV_ASM			"cdq\nidiv ebx\n"
 #define MOD_ASM			"cdq\nidiv ebx\nmov eax, edx\n"
 
-#define BIN_ASSIGN(bin)	"%spush eax\n%smov ecx, eax\nmov eax, [eax]\npop ebx\n"bin"mov [ecx], eax\n"
+#define BIN_ASSIGN(bin)	"%spush eax\n%smov ecx, eax\nmov eax, [eax]\npop ebx\npush ecx\n"bin"pop ebx\nmov [ebx], eax\n"
 
 #define BSS			".section .bss\n"	\
 					".global %s\n"		\

@@ -28,16 +28,65 @@ main() {
 	i = 0;
 	test(i);
 
-	i =+ 1;
+	i =+ 4;
 	test(i);
 
-	i =* 20;
+	i =- 2;
+	test(i);
+
+	i =* 10;
 	test(i);
 
 	i =/ 2;
 	test(i);
 
 	i =% 7;
+	test(i);
+
+	i =| 4;
+	test(i);
+
+	i =& 10;
+	test(i);
+
+	i === 2;
+	test(i);
+	i === 3;
+	test(i);
+
+	i =!= 0;
+	test(i);
+	i =!= 1;
+	test(i);
+
+	i =<= 2;
+	test(i);
+	i = 2;
+	i =<= 2;
+	test(i);
+
+	i =>= 2;
+	test(i);
+	i = 2;
+	i =>= 2;
+	test(i);
+
+	i => 0;
+	test(i);
+	i = 0;
+	i => 0;
+	test(i);
+
+	i =< 0;
+	test(i);
+	i = -2;
+	i =< 0;
+	test(i);
+
+	i =<< 2;
+	test(i);
+
+	i =>> 1;
 	test(i);
 
 	return (0);
