@@ -19,6 +19,7 @@ int var_count = 0;
 int param_count = 1;
 int id_count = 0;
 int call_size = 0;
+bool ret = false;
 
 variable vars[MAX_VARS];
 
@@ -154,12 +155,20 @@ definition:
   |	IDENT LPAREN RPAREN statements {
   		RESET_STACK();
 		asprintf(&$$, FUNCTION, $1, $1, $1, $4);
+		if (!ret) {
+			asprintf(&$$, "%sleave\nret\n", $$);
+		}
+		ret = false;
 		free($1);
 		free($4);
 	}
   |	IDENT LPAREN function_params RPAREN statement {
 		RESET_STACK();
 		asprintf(&$$, FUNCTION, $1, $1, $1, $5);
+		if (!ret) {
+			asprintf(&$$, "%sleave\nret\n", $$);
+		}
+		ret = false;
   		free($1); 
   		free($3); 
   		free($5); 
@@ -210,10 +219,12 @@ statement:
 			free($2);
 		}
 	| RETURN LPAREN rvalue RPAREN SEMICOLON {
+			ret = true;
 			asprintf(&$$, "%sleave\nret\n", $3);
 			free($3);
 		}
 	| RETURN SEMICOLON {
+			ret = true;
 			$$ = strdup("leave\nret\n");
 		}
 	| rvalue SEMICOLON {
