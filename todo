@@ -1,0 +1,4 @@
+ternary
+&arr[i] doesn't work: maybe recheck lvalue management
+
+the problem may be a conflict between assign and lvalue

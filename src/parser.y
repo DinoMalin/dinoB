@@ -95,8 +95,10 @@ char get_char(char *str) {
 %token EQUAL UNEQUAL INF INFEQUAL SUP SUPEQUAL
 %token LSHIFT RSHIFT
 
+%right ASSI ASSIADD ASSISUB ASSIMUL ASSIDIV
 %left PLUS MINUS
 %left MUL DIV
+%right DEREF
 
 %type <str> definition
 %type <str> numbers
@@ -320,7 +322,7 @@ lvalue:
 				asprintf(&$$, "lea eax, %s\n", $1);
 			free($1);
 	}
-	| MUL rvalue {
+	| MUL rvalue %prec DEREF {
 			asprintf(&$$, "%s", $2);
 			free($2);
 	}
